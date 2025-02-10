@@ -65,26 +65,30 @@ public class AimShoot : MonoBehaviour
     // object reference for random
     private System.Random random = new System.Random();
 
+    // Mouse vars
+    private float absoluteMouseX = 0f; // Persistent absolute X position
+    private float absoluteMouseY = 0f; // Persistent absolute Y posit
+
     
     // Start is called before the first frame update
     void Start()
     {
-        // Initialize the serial port
-        serialPort = new SerialPort(portName, baudRate);
-        serialPort.Parity = Parity.None;
-        serialPort.DataBits = 8;
-        serialPort.StopBits = StopBits.One;
-        serialPort.Handshake = Handshake.None;
+        // // Initialize the serial port
+        // serialPort = new SerialPort(portName, baudRate);
+        // serialPort.Parity = Parity.None;
+        // serialPort.DataBits = 8;
+        // serialPort.StopBits = StopBits.One;
+        // serialPort.Handshake = Handshake.None;
 
-        try
-        {
-            serialPort.Open();
-            Debug.Log("Serial port opened successfully.");
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"Error opening serial port: {ex.Message}");
-        }
+        // try
+        // {
+        //     serialPort.Open();
+        //     Debug.Log("Serial port opened successfully.");
+        // }
+        // catch (System.Exception ex)
+        // {
+        //     Debug.LogError($"Error opening serial port: {ex.Message}");
+        // }
 
         // Set up the LineRenderer properties
         invisVis.startWidth = 0.05f;
@@ -92,6 +96,7 @@ public class AimShoot : MonoBehaviour
         invisVis.material = new Material(Shader.Find("Sprites/Default"));
         // Generate the initial invisible vector
         GenerateInvisibleVector(true); // Generate the initial random vector
+        Cursor.visible = false;
     }
 
     // Update is called once per frame
@@ -103,47 +108,47 @@ public class AimShoot : MonoBehaviour
     void FixedUpdate()
     {
 
-        // Read the most recent data and log it
-        if (!serialPort.IsOpen)
-        {
-            try
-            {
-                serialPort.Open();
-                Debug.Log("Serial port opened successfully.");
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"Error opening serial port: {ex.Message}");
-            }
-        }
-        if (serialPort != null && serialPort.IsOpen)
-        {
-           try
-            {
-                // Check if there is data in the buffer
-                if (serialPort.BytesToRead > 0)
-                {
-                    // Read all available data without blocking
-                    string data = serialPort.ReadLine();
+        // // Read the most recent data and log it
+        // if (!serialPort.IsOpen)
+        // {
+        //     try
+        //     {
+        //         serialPort.Open();
+        //         Debug.Log("Serial port opened successfully.");
+        //     }
+        //     catch (System.Exception ex)
+        //     {
+        //         Debug.LogError($"Error opening serial port: {ex.Message}");
+        //     }
+        // }
+        // if (serialPort != null && serialPort.IsOpen)
+        // {
+        //    try
+        //     {
+        //         // Check if there is data in the buffer
+        //         if (serialPort.BytesToRead > 0)
+        //         {
+        //             // Read all available data without blocking
+        //             string data = serialPort.ReadLine();
 
-                    // Ensure data is not empty
-                    if (!string.IsNullOrEmpty(data))
-                    {
-                        lock (lockObject)
-                        {
-                            mostRecentData = data; // Save the most recent data
-                        }
+        //             // Ensure data is not empty
+        //             if (!string.IsNullOrEmpty(data))
+        //             {
+        //                 lock (lockObject)
+        //                 {
+        //                     mostRecentData = data; // Save the most recent data
+        //                 }
                         
-                        // Process the data for x and y
-                        ProcessInputData(mostRecentData);
-                    }
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"Error reading from serial port: {ex.Message}");
-            }
-        }
+        //                 // Process the data for x and y
+        //                 ProcessInputData(mostRecentData);
+        //             }
+        //         }
+        //     }
+        //     catch (System.Exception ex)
+        //     {
+        //         Debug.LogError($"Error reading from serial port: {ex.Message}");
+        //     }
+        // }
 
         Debug.Log("Target Vector = " + targetVector);
         timeSinceLastShift += Time.fixedDeltaTime;
@@ -168,11 +173,36 @@ public class AimShoot : MonoBehaviour
 
         // float horizontalInput = (Input.GetAxis("Horizontal")) * 0.75f;
         // float verticalInput = (Input.GetAxis("Vertical")) * 0.75f;
+        ProcessMouseInput();
 
-        NewMethod();
+        MouseMethod();
+
+        // NewMethod();
 
         // OldMethod();
         
+    }
+
+    private void MouseMethod()
+    {
+        // Compute input intensity for acceleration scaling
+        float inputIntensity = Mathf.Clamp01(Mathf.Abs(horizontalInput) + Mathf.Abs(verticalInput));
+
+        // Compute the target velocity based on input
+        AimVector = new Vector3(horizontalInput * 0.5f, verticalInput * 0.5f, 0.4f);
+        AimVector += new Vector3(InvisTargetCross.position.x, InvisTargetCross.position.y, 0f);
+
+        // Adjust invisible crosshair movement based on input intensity
+        float invisAcceleration = Mathf.Lerp(0f, 7f, inputIntensity);
+        currentVelocity = Vector3.MoveTowards(InvisTargetCross.position, AimVector, invisAcceleration * Time.fixedDeltaTime);
+        InvisTargetRigid.MovePosition(currentVelocity);
+
+        // Adjust crosshair movement speed based on distance
+        float distanceToInvisCross = Vector3.Distance(CrossHair.position, InvisTargetCross.position);
+        float crosshairSpeed = Mathf.Lerp(0f, 5f, distanceToInvisCross / 2f);
+
+        Vector3 CrossVelocity = Vector3.MoveTowards(CrossHair.position, InvisTargetCross.position, crosshairSpeed * Time.fixedDeltaTime);
+        CrossRigid.MovePosition(CrossVelocity);
     }
 
     private void NewMethod()
@@ -362,6 +392,37 @@ public class AimShoot : MonoBehaviour
         {
             Debug.LogError("Input data is not in the expected format.");
         }
+    }
+    private void ProcessMouseInput()
+    {
+        
+        // Accumulate raw movement into absolute positions
+        absoluteMouseX += Input.GetAxis("Mouse X") * 2f;
+        absoluteMouseY += Input.GetAxis("Mouse Y") * 2f;
+
+        if (!hasSetInitialPosition)
+        {
+            // Set initial position dynamically
+            initialX = absoluteMouseX;
+            initialY = absoluteMouseY;
+            hasSetInitialPosition = true;
+        }
+
+        // Compute offsets dynamically
+        float xTranslated = absoluteMouseX - initialX;
+        float yTranslated = absoluteMouseY - initialY;
+
+        // Adjust scaling factors to match expected range
+        float distX = 40f;  // Adjust to control sensitivity
+        float distY = 60f;
+
+        // Normalize inputs to range -1:1
+        horizontalInput = xTranslated / distX;
+        verticalInput = yTranslated / distY;
+
+        
+
+        Debug.Log($"Normalized Input - Horizontal: {horizontalInput}, Vertical: {verticalInput}");
     }
 
 }
