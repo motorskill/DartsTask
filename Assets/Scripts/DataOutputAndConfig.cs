@@ -85,15 +85,15 @@ public class DataOutputAndConfig : MonoBehaviour
         // Get the file path for trials used
         public static string GetTrialsUsedFilePath()
         {
-            #if UNITY_EDITOR
-                string TrialsUsedPath = Application.dataPath + "/Resources/trials_used.txt";
-                if (!File.Exists(TrialsUsedPath))
-                {
-                    // Create the file
-                    using (FileStream fs = File.Create(TrialsUsedPath)); // Create file if it doesn't exist
-                }
-                return TrialsUsedPath;
-            #else
+            // #if UNITY_EDITOR
+            //     string TrialsUsedPath = Application.dataPath + "/Resources/trials_used.txt";
+            //     if (!File.Exists(TrialsUsedPath))
+            //     {
+            //         // Create the file
+            //         using (FileStream fs = File.Create(TrialsUsedPath)); // Create file if it doesn't exist
+            //     }
+            //     return TrialsUsedPath;
+            // #else
                 string backend = "QuietArcheryBackend";
                 string TrialsUsedPath = "D:/QuietArchery_Stuff" + "/" + backend + "/Resources/trials_used.txt";
                 if (!File.Exists(TrialsUsedPath))
@@ -102,7 +102,7 @@ public class DataOutputAndConfig : MonoBehaviour
                     using (FileStream fs = File.Create(TrialsUsedPath)); // Create file if it doesn't exist
                 }
                 return TrialsUsedPath;
-            #endif
+            // #endif
         }
 
         // Check if a specific trial has already been used
@@ -309,12 +309,12 @@ public class DataOutputAndConfig : MonoBehaviour
         if (subjectID == null)
         {
             filePath = $"{directoryPath}/Subject{subjectNumber}.txt";
-            csvPath = $"{directoryPath}/Subject{subjectNumber}.csv";
+            csvPath = $"{directoryPath}/{subjectNumber}.block.{current_block}.csv";
         }
         else
         {
             filePath = $"{directoryPath}/Subject{subjectID}.txt";
-            csvPath = $"{directoryPath}/{subjectID}.csv";
+            csvPath = $"{directoryPath}/{subjectID}.block.{current_block}.csv";
         }
 
         Debug.Log("Subject data loaded and paths set");
@@ -425,16 +425,6 @@ public class DataOutputAndConfig : MonoBehaviour
             {
                 TrialManager.ClearTrials();
             }
-            current_block++;    // Move to the next block
-        }
-        else
-        {
-            current_trial++; // Proceed to the next trial
-        }
-
-        // Check if the current block exceeds the maximum blocks
-        if (current_block > maxBlocks)
-        {
             // Reset the tracker files to initial values
             WriteArrayToFile(trialblock_tracker, new string[] { "1", "1" }, false);
             WriteArrayToFile(subject_tracker, new string[] { "0" }, false);
@@ -455,6 +445,12 @@ public class DataOutputAndConfig : MonoBehaviour
             // Clear any existing trial positions in `testPath`
             // WriteArrayToFile(testPath, new string[] { "" }, false);
             TrialManager.ClearTrials();
+            // Close the serial port when the application quits/reloads
+            if (aimShoot.serialPort != null && aimShoot.serialPort.IsOpen)
+            {
+                aimShoot.serialPort.Close();
+                Debug.Log("Serial port closed.");
+            }
             // Exit application or stop play mode in editor
             #if UNITY_EDITOR
                 UnityEditor.EditorApplication.isPlaying = false;
@@ -464,6 +460,10 @@ public class DataOutputAndConfig : MonoBehaviour
 
             Debug.Log("Reached max blocks, resetting trial and block data. Exiting...");
             return; // End function early if quitting
+        }
+        else
+        {
+            current_trial++; // Proceed to the next trial
         }
 
         // Update tracker file with new trial and block numbers

@@ -8,6 +8,9 @@ using System;
 using System.IO;
 using System.IO.Ports;
 using UnityEngine;
+using System.Drawing;
+using UnityEngine.UI; // Required for UI
+using DG.Tweening; // Import DOTween namespac
 
 public class AimShoot : MonoBehaviour
 {
@@ -38,8 +41,13 @@ public class AimShoot : MonoBehaviour
     private float initialX, initialY;
 
     // Shooting Vars
+    private bool nullShoot = false;
     public float shootSpeed = 10f;    // Speed of the cylinder
     private bool OneDart = true;
+    private float inputTimeout = 0.15f;
+    private float lastInputTime = 0f;
+    private float inputRadius = 0.4f;
+    private bool firstInput = false;
 
     // Random influence
     private Vector3 invisibleVector; // The "invisible force" vector
@@ -62,6 +70,21 @@ public class AimShoot : MonoBehaviour
     [SerializeField]
     private int baudRate = 115200;
 
+    // Timer bool
+    private float timeTillShoot = 6f;
+    private float bufferTime = 3f;
+    private float preShootTime = 5f;
+    private bool fadeStarted = false; // Track if fade has started
+    private bool fadeComplete = false;
+    private float initialOpacity = 0f;  // Low opacity (fully transparent)
+    private Vector3 initialScale = new Vector3(0.08f, 0.08f, 0.08f); // High scale (adjust as needed)
+    [SerializeField]
+    GameObject timerCircle;
+    [SerializeField]
+    private UnityEngine.UI.Image circleTimer_texture;
+    [SerializeField]
+    private RectTransform rectTransform;
+
     // object reference for random
     private System.Random random = new System.Random();
 
@@ -69,26 +92,29 @@ public class AimShoot : MonoBehaviour
     private float absoluteMouseX = 0f; // Persistent absolute X position
     private float absoluteMouseY = 0f; // Persistent absolute Y posit
 
+    // bools
+    private bool isAiming = false;
+
     
     // Start is called before the first frame update
     void Start()
     {
-        // // Initialize the serial port
-        // serialPort = new SerialPort(portName, baudRate);
-        // serialPort.Parity = Parity.None;
-        // serialPort.DataBits = 8;
-        // serialPort.StopBits = StopBits.One;
-        // serialPort.Handshake = Handshake.None;
+        // Initialize the serial port
+        serialPort = new SerialPort(portName, baudRate);
+        serialPort.Parity = Parity.None;
+        serialPort.DataBits = 8;
+        serialPort.StopBits = StopBits.One;
+        serialPort.Handshake = Handshake.None;
 
-        // try
-        // {
-        //     serialPort.Open();
-        //     Debug.Log("Serial port opened successfully.");
-        // }
-        // catch (System.Exception ex)
-        // {
-        //     Debug.LogError($"Error opening serial port: {ex.Message}");
-        // }
+        try
+        {
+            serialPort.Open();
+            Debug.Log("Serial port opened successfully.");
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"Error opening serial port: {ex.Message}");
+        }
 
         // Set up the LineRenderer properties
         invisVis.startWidth = 0.05f;
@@ -96,61 +122,130 @@ public class AimShoot : MonoBehaviour
         invisVis.material = new Material(Shader.Find("Sprites/Default"));
         // Generate the initial invisible vector
         GenerateInvisibleVector(true); // Generate the initial random vector
-        Cursor.visible = false;
+        // Cursor.visible = false;
+
+        // Get references
+        circleTimer_texture = timerCircle.GetComponent<UnityEngine.UI.Image>();
+        rectTransform = timerCircle.GetComponent<RectTransform>();
+
+        // Set initial opacity
+        UnityEngine.Color color = circleTimer_texture.color;
+        color.a = initialOpacity;
+        circleTimer_texture.color = color;
+
+        // Set initial scale
+        rectTransform.localScale = initialScale;
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        if (horizontalInput != 0 && verticalInput != 0)
+        {
+            isAiming = true;
+        }
+        if (isAiming)
+        {
+            if (!fadeStarted)
+            {
+                fadeStarted = true;
+                FadeInAndShrink(circleTimer_texture, rectTransform, preShootTime);
+            }
+            if (fadeComplete)
+            {
+                // if (bufferTime > 0f)
+                // {
+                //     bufferTime -= Time.deltaTime;
+                // }
+                // else
+                // {
+                //     if (timeTillShoot >= 0f)
+                //     {
+                //         timeTillShoot -= Time.deltaTime;
+                //         float relativeTime = timeTillShoot / 6f;
+                //         circleTimer_texture.fillAmount = relativeTime;
+                //     }
+                //     else
+                //     {
+                        if (OneDart)
+                        {
+                            Shoot();
+                        }
+                //     }
+                // }
+                // Debug.Log("Undraw now");
+            }
+        }
     }
 
     void FixedUpdate()
     {
 
-        // // Read the most recent data and log it
-        // if (!serialPort.IsOpen)
-        // {
-        //     try
-        //     {
-        //         serialPort.Open();
-        //         Debug.Log("Serial port opened successfully.");
-        //     }
-        //     catch (System.Exception ex)
-        //     {
-        //         Debug.LogError($"Error opening serial port: {ex.Message}");
-        //     }
-        // }
-        // if (serialPort != null && serialPort.IsOpen)
-        // {
-        //    try
-        //     {
-        //         // Check if there is data in the buffer
-        //         if (serialPort.BytesToRead > 0)
-        //         {
-        //             // Read all available data without blocking
-        //             string data = serialPort.ReadLine();
+        // Read the most recent data and log it
+        if (!serialPort.IsOpen)
+        {
+            try
+            {
+                serialPort.Open();
+                Debug.Log("Serial port opened successfully.");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Error opening serial port: {ex.Message}");
+            }
+        }
 
-        //             // Ensure data is not empty
-        //             if (!string.IsNullOrEmpty(data))
-        //             {
-        //                 lock (lockObject)
-        //                 {
-        //                     mostRecentData = data; // Save the most recent data
-        //                 }
-                        
-        //                 // Process the data for x and y
-        //                 ProcessInputData(mostRecentData);
-        //             }
-        //         }
-        //     }
-        //     catch (System.Exception ex)
-        //     {
-        //         Debug.LogError($"Error reading from serial port: {ex.Message}");
-        //     }
-        // }
+        Debug.Log($"Normalized Input - Horizontal: {horizontalInput}, Vertical: {verticalInput}");
+        Debug.Log($"Normalized Input - previousHorizontal: {previousHinput}, previousVertical: {previousVinput}");
 
-        Debug.Log("Target Vector = " + targetVector);
+        if (serialPort != null && serialPort.IsOpen)
+        {
+           try
+            {
+                // Check if there is data in the buffer
+                if (serialPort.BytesToRead > 0)
+                {
+                    // Read all available data without blocking
+                    string data = serialPort.ReadLine();
+                    
+                    lock (lockObject)
+                    {
+                        mostRecentData = data; // Save the most recent data
+                    }
+                    
+                    // Process the data for x and y
+                    ProcessInputData(mostRecentData);
+                    if (firstInput && ((Math.Abs(horizontalInput - previousHinput) > inputRadius) || (Math.Abs(verticalInput - previousVinput) > inputRadius)) && OneDart)
+                    {
+                        Shoot();
+                    }
+
+                    nullShoot = true;
+
+                    lastInputTime = Time.time;
+
+                    if (!firstInput)
+                    {
+                        firstInput = true;
+                    }
+                }
+                else if (Time.time - lastInputTime > inputTimeout )
+                {
+                    Debug.Log("input not caught");
+                    if (nullShoot && OneDart)
+                    {
+                        Shoot();
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Error reading from serial port: {ex.Message}");
+            }
+        }
+
+        // Debug.Log("Target Vector = " + targetVector);
         timeSinceLastShift += Time.fixedDeltaTime;
 
         // Periodically update the target vector
@@ -164,23 +259,27 @@ public class AimShoot : MonoBehaviour
         }
 
         // Smoothly rotate the invisible vector towards the target vector
-        invisibleVector = Vector3.Lerp(invisibleVector, targetVector, shiftSpeed * Time.fixedDeltaTime).normalized * forceMagnitude;
+        // invisibleVector = Vector3.Lerp(invisibleVector, targetVector, shiftSpeed * Time.fixedDeltaTime).normalized * forceMagnitude;
 
-        if (Input.GetButtonDown("Fire1") && OneDart == true)
-        {
-            Shoot();
-        }
+        // if (Input.GetButtonDown("Fire1") && OneDart == true)
+        // {
+        //     Shoot();
+        // }
 
-        // float horizontalInput = (Input.GetAxis("Horizontal")) * 0.75f;
-        // float verticalInput = (Input.GetAxis("Vertical")) * 0.75f;
-        ProcessMouseInput();
+        // horizontalInput = (Input.GetAxis("Horizontal")) * 0.75f;
+        // verticalInput = (Input.GetAxis("Vertical")) * 0.75f;
 
-        MouseMethod();
+        // ProcessMouseInput();
 
-        // NewMethod();
+        // MouseMethod();
+
+        NewMethod();
 
         // OldMethod();
-        
+
+
+        previousHinput = horizontalInput;
+        previousVinput = verticalInput;       
     }
 
     private void MouseMethod()
@@ -287,7 +386,7 @@ public class AimShoot : MonoBehaviour
             targetVector = new Vector3(Mathf.Cos(radians), Mathf.Sin(radians), 0f).normalized * forceMagnitude;
         }
 
-        Debug.Log($"Generated Invisible Vector: {invisibleVector}, Target Vector: {targetVector}");
+        // Debug.Log($"Generated Invisible Vector: {invisibleVector}, Target Vector: {targetVector}");
     }
 
     void Shoot()
@@ -305,12 +404,14 @@ public class AimShoot : MonoBehaviour
             Camera.main.transform.position,
             Camera.main.transform.rotation
         );
+        
+        // Get the direction towards the target
+        Vector3 direction = (CrossHair.position - Camera.main.transform.position).normalized;
+
+        cylinder.transform.LookAt(AimVector);
 
         // Activate the GameObject (make it visible and functional)
         cylinder.SetActive(true);
-
-        // Get the direction towards the target
-        Vector3 direction = (CrossHair.position - Camera.main.transform.position).normalized;
 
         // Apply velocity to the cylinder
         Rigidbody rb = cylinder.GetComponent<Rigidbody>();
@@ -351,6 +452,8 @@ public class AimShoot : MonoBehaviour
     }
     private void ProcessInputData(string data)
     {
+        if (string.IsNullOrEmpty(data))
+        {return;}
         // Split the input string into components
         string[] parts = data.Split(',');
 
@@ -381,7 +484,6 @@ public class AimShoot : MonoBehaviour
 
                 
 
-                Debug.Log($"Normalized Input - Horizontal: {horizontalInput}, Vertical: {verticalInput}");
             }
             else
             {
@@ -423,6 +525,14 @@ public class AimShoot : MonoBehaviour
         
 
         Debug.Log($"Normalized Input - Horizontal: {horizontalInput}, Vertical: {verticalInput}");
+    }
+
+    private void FadeInAndShrink(UnityEngine.UI.Image image, RectTransform rectTransform, float duration)
+    {
+        image.DOFade(1f, duration); // Fade in
+
+        rectTransform.DOScale(new Vector3(0.012f, 0.012f, 1f), duration) // Shrink smoothly
+            .OnComplete(() => fadeComplete = true); // Mark fade as complete when done
     }
 
 }

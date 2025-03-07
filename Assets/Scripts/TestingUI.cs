@@ -34,47 +34,47 @@ public class TestingUI : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        #if UNITY_EDITOR
-            string directoryPath = Application.dataPath + "/Data";
-            if (!Directory.Exists(directoryPath))
-            {
-                Directory.CreateDirectory(directoryPath);
-            }
-            // filePath = directoryPath + "/Subject" + subjectNumber + ".txt";
-            // csvPath = directoryPath + "/Subject" + subjectNumber + ".csv";
-            if (!Directory.Exists(Application.dataPath + "/Resources"))
-            {
-                Directory.CreateDirectory(Application.dataPath + "/Resources");
-            }
-            configPath = Application.dataPath + "/Resources/test_config.txt";
-            if (!File.Exists(configPath))
-            {
-                // Create the file
-                using (FileStream fs = File.Create(configPath));
-                WriteArrayToFile(configPath, new string [] {"trials","2","blocks","2","subject","","overwrite"}, false);
-            }
-            // string testPath = Application.dataPath + "/Resources/trial_coords.txt";
-            // if (!File.Exists(testPath))
-            // {
-            //     // Create the file
-            //     using (FileStream fs = File.Create(testPath));
+        // #if UNITY_EDITOR
+        //     string directoryPath = Application.dataPath + "/Data";
+        //     if (!Directory.Exists(directoryPath))
+        //     {
+        //         Directory.CreateDirectory(directoryPath);
+        //     }
+        //     // filePath = directoryPath + "/Subject" + subjectNumber + ".txt";
+        //     // csvPath = directoryPath + "/Subject" + subjectNumber + ".csv";
+        //     if (!Directory.Exists(Application.dataPath + "/Resources"))
+        //     {
+        //         Directory.CreateDirectory(Application.dataPath + "/Resources");
+        //     }
+        //     configPath = Application.dataPath + "/Resources/test_config.txt";
+        //     if (!File.Exists(configPath))
+        //     {
+        //         // Create the file
+        //         using (FileStream fs = File.Create(configPath));
+        //         WriteArrayToFile(configPath, new string [] {"trials","2","blocks","2","subject","","overwrite"}, false);
+        //     }
+        //     // string testPath = Application.dataPath + "/Resources/trial_coords.txt";
+        //     // if (!File.Exists(testPath))
+        //     // {
+        //     //     // Create the file
+        //     //     using (FileStream fs = File.Create(testPath));
 
-            // }
-            trialblock_tracker = Application.dataPath + "/Resources/trial_block_track.txt";
-            if (!File.Exists(trialblock_tracker))
-            {
-                // Create the file
-                using (FileStream fs = File.Create(trialblock_tracker))
-                WriteArrayToFile(trialblock_tracker, new string [] {"1", "1"}, false);
-            }
-            subject_tracker = Application.dataPath + "/Resources/subject_tracker.txt";
-            if (!File.Exists(subject_tracker))
-            {
-                // Create the file
-                using (FileStream fs = File.Create(subject_tracker))
-                WriteArrayToFile(subject_tracker, new string [] {"0"}, false);
-            }
-        #else
+        //     // }
+        //     trialblock_tracker = Application.dataPath + "/Resources/trial_block_track.txt";
+        //     if (!File.Exists(trialblock_tracker))
+        //     {
+        //         // Create the file
+        //         using (FileStream fs = File.Create(trialblock_tracker))
+        //         WriteArrayToFile(trialblock_tracker, new string [] {"1", "1"}, false);
+        //     }
+        //     subject_tracker = Application.dataPath + "/Resources/subject_tracker.txt";
+        //     if (!File.Exists(subject_tracker))
+        //     {
+        //         // Create the file
+        //         using (FileStream fs = File.Create(subject_tracker))
+        //         WriteArrayToFile(subject_tracker, new string [] {"0"}, false);
+        //     }
+        // #else
             string backend = "QuietArcheryBackend";
             string directoryPath = "D:/QuietArchery_Stuff" + "/" + backend + "/Data";
             // Ensure the directory exists
@@ -123,7 +123,7 @@ public class TestingUI : MonoBehaviour
                 using (FileStream fs = File.Create(trials_used));
                 WriteArrayToFile(trials_used, new string [] {""}, false);
             }
-        #endif
+        // #endif
         string[] current_trial_block = ParseFile(trialblock_tracker);
         if (current_trial_block[0] != "1" || current_trial_block[1] != "1")
         {
@@ -224,13 +224,15 @@ public class TestingUI : MonoBehaviour
         string TrialField_content = GetTrialFieldText();
         string BlockField_content = GetBlockFieldText();
         string[] config_content = ParseFile(configPath);
+        string[] trialBlockData = ParseFile(trialblock_tracker);
         string[] subject_tracker_content = ParseFile(subject_tracker);
         if (SubjectID_content == "next" && TrialField_content != "" && BlockField_content != "")
         { // No subject number: new subject can pick next number
             config_content[1] = TrialField_content;
-            config_content[3] = BlockField_content;
+            trialBlockData[1] = BlockField_content;
             config_content[5] = SubjectID_content;
             WriteArrayToFile(configPath, config_content, false);
+            WriteArrayToFile(trialblock_tracker, trialBlockData, false);
             subject_tracker_content[0] = SubjectID_content;
             WriteArrayToFile(subject_tracker, subject_tracker_content, false);
             SceneManager.LoadScene("ArcheryScene");
@@ -257,7 +259,8 @@ public class TestingUI : MonoBehaviour
         else
         {
             string backend = "QuietArcheryBackend";
-            filePath = "D:/QuietArchery_Stuff" + "/" + backend + "/" + SubjectID_content + ".csv";
+            filePath = "D:/QuietArchery_Stuff" + "/" + backend + "/" + SubjectID_content + ".block." + BlockField_content + ".csv";
+
         }
         #endif
         if (File.Exists(filePath))
@@ -280,9 +283,10 @@ public class TestingUI : MonoBehaviour
         { // File path does not exist
             // Communicate to main scene which subject # it needs to use, if any.
             config_content[1] = TrialField_content;
-            config_content[3] = BlockField_content;
+            trialBlockData[1] = BlockField_content;
             config_content[5] = SubjectID_content;
             WriteArrayToFile(configPath, config_content, false);
+            WriteArrayToFile(trialblock_tracker, trialBlockData, false);
             subject_tracker_content[0] = SubjectID_content;
             WriteArrayToFile(subject_tracker, subject_tracker_content, false);  
             SceneManager.LoadScene("ArcheryScene");
