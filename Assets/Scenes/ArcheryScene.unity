@@ -404,6 +404,7 @@ MonoBehaviour:
   debugInvisibleVector: 1
   InvisTargetCross: {fileID: 287449114}
   InvisTargetRigid: {fileID: 287449115}
+  dataOutputAndConfig: {fileID: 1565567766}
   acceleration: 1.1
   deceleration: 0.999
   shootSpeed: 35
@@ -915,7 +916,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 1
   m_IsActive: 1
 --- !u!4 &578602449
 Transform:
@@ -927,7 +928,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.27059805, y: 0.6532815, z: 0.27059805, w: 0.6532815}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: -0.099999994, y: -0.10000001, z: -0.00049999997}
+  m_LocalScale: {x: -0.099999994, y: -0.10000001, z: -0.01}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 792812306}
@@ -1172,7 +1173,7 @@ Light:
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
   m_Shadows:
-    m_Type: 1
+    m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
@@ -1211,7 +1212,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 0, y: 1e-45, z: 1.02e-43, w: 7.8e-44}
+  m_BoundingSphereOverride: {x: 0, y: 1e-45, z: 1.02e-43, w: 1.4e-44}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ShadowRadius: 0
@@ -1248,7 +1249,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 1
   m_IsActive: 1
 --- !u!4 &746438553
 Transform:
@@ -1260,7 +1261,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.6532815, y: 0.27059805, z: -0.27059805, w: 0.6532815}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: -0.1, y: -0.099999994, z: -0.00049999997}
+  m_LocalScale: {x: -0.1, y: -0.099999994, z: -0.01}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 792812306}
@@ -1609,7 +1610,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 1
   m_IsActive: 0
 --- !u!54 &792812305
 Rigidbody:
@@ -2080,7 +2081,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 1
   m_IsActive: 1
 --- !u!4 &1561573636
 Transform:
@@ -2309,7 +2310,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 1
   m_IsActive: 1
 --- !u!4 &2016403563
 Transform:
