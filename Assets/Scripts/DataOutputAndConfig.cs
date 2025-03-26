@@ -1,10 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Ports;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
-using System.Linq;
+using Unity.VisualScripting;
 
 public class DataOutputAndConfig : MonoBehaviour
 {
@@ -15,46 +18,74 @@ public class DataOutputAndConfig : MonoBehaviour
     public int current_trial;
     public int current_block;
 
+    // Paths for file management
+    private string csvPath;
+    private string directoryPath;
+
+    // Switch for arrow coords
+    public bool arrowIsNull = true;
+    // buffer data for positionally useless phases
+    private Dictionary<string, string> bufferPhases = new Dictionary<string, string>();
+    private readonly List<string> bufferPhaseOrder = new List<string> { "ITI", "Ready", "Return" };
+
+
     void Start()
     {
         subjectNumber = 1;
         InitializeConfiguration();
         SetupTrialData();
         LoadSubjectData();
+
+        if (aimShoot.dataRecordingEnabled)
+        {
+            InitializeCSVHeader();
+        }
+        
         UpdateTrialData();
     }
 
     private void InitializeConfiguration()
     {
-        if (!PlayerPrefs.HasKey("trials"))
+
+        directoryPath = "D:/QuietArchery_Stuff/QuietArchery/Data";
+        EnsureDirectory(directoryPath);
+
+        if (!PlayerPrefs.HasKey("max_trials"))
         {
-            PlayerPrefs.SetInt("trials", 2);
-            PlayerPrefs.SetInt("blocks", 2);
-            PlayerPrefs.SetString("subject", "");
+            PlayerPrefs.SetInt("max_trials", 2);
+            PlayerPrefs.SetInt("max_blocks", 2);
+            PlayerPrefs.SetString("subjectID", "");
             PlayerPrefs.SetInt("overwrite", 0);
+            PlayerPrefs.SetInt("current_trial", 1);
             PlayerPrefs.SetInt("trialBlock", 1);
-            PlayerPrefs.SetInt("subjectTracker", 0);
         }
     }
 
     private void LoadSubjectData()
     {
         subjectNumber = PlayerPrefs.GetInt("subjectTracker", 1);
-        subjectID = PlayerPrefs.GetString("subject", null);
-
+        subjectID = PlayerPrefs.GetString("subjectID", null);
+        if (string.IsNullOrEmpty(subjectID))
+        {
+            csvPath = $"{directoryPath}/Subject{subjectNumber}.csv";
+        }
+        else
+        {
+            csvPath = $"{directoryPath}/{subjectID}.block.{current_block}.csv";
+        }
         Debug.Log("Subject data loaded: " + (subjectID ?? subjectNumber.ToString()));
     }
 
     private void SetupTrialData()
     {
-        current_trial = PlayerPrefs.GetInt("trialBlock", 1);
-        current_block = PlayerPrefs.GetInt("blocks");
+        current_trial = PlayerPrefs.GetInt("current_trial", 1);
+        current_block = PlayerPrefs.GetInt("current_block", 1);
     }
 
     private void UpdateTrialData()
     {
-        int maxTrials = PlayerPrefs.GetInt("trials");
-        int selectedBlock = PlayerPrefs.GetInt("blocks");
+        int maxTrials = PlayerPrefs.GetInt("max_trials");
+        int selectedBlock = PlayerPrefs.GetInt("max_blocks");
 
         if (current_trial > maxTrials)
         {
@@ -76,8 +107,127 @@ public class DataOutputAndConfig : MonoBehaviour
         {
             current_trial++;
         }
-        PlayerPrefs.SetInt("trialBlock", current_trial);
-        PlayerPrefs.SetInt("blockTracker", selectedBlock);
+        PlayerPrefs.SetInt("current_trial", current_trial);
+        PlayerPrefs.SetInt("current_block", selectedBlock);
         Debug.Log($"Updated to Trial {current_trial}, Block {selectedBlock}");
+    }
+    public void LogDataEntry(string eventType)
+    {
+        string timestamp = aimShoot.GetAdjustedTime().ToString();
+
+        // Target center is defined by featureTarget.transform.position ... (0,0,0)
+
+        Vector3 arrowLocal = Vector3.zero;
+        if (!arrowIsNull)
+        {
+            arrowLocal = aimShoot.arrowCoords.position - aimShoot.featureTarget.transform.position;
+        }
+
+        Vector3 crossHairLocal = aimShoot.CrossHair.position - aimShoot.featureTarget.transform.position;
+
+        Vector2 target2D = new Vector2(0f, 0f); // Now the origin
+        Vector2 arrow2D = new Vector2(arrowLocal.x, arrowLocal.y);
+        float radialError = Vector2.Distance(target2D, arrow2D);
+
+
+        int condition = aimShoot.conditionIndex;
+        /*
+        Conditions associated with different states
+        1: Near, Quiet
+        2: Near, Noisy
+        3: Far, Quiet
+        4: Far, Noisy
+        */
+        string cond_type = "";
+        switch(condition)
+        {
+            case 1:
+                cond_type = "Near+Quiet";
+                break;
+            
+            case 2:
+                cond_type = "Near+Noisy";
+                break;
+
+            case 3:
+                cond_type = "Far+Quiet";
+                break;
+
+            case 4:
+                cond_type = "Far+Noisy";
+                break;
+        }
+
+        float forcePressure;
+        try
+        {
+            float.TryParse(aimShoot.parts[4], out forcePressure);
+        }
+        catch
+        {
+            forcePressure = 0f;
+        }
+
+        if (eventType == "Shoot")
+        {
+            if (!arrowIsNull)
+            {
+                eventType = "Shoot (post-shot)";
+            }
+            else
+            {
+                eventType = "Shoot (pre-shot)";
+            }
+        }
+        else if (bufferPhaseOrder.Contains(eventType))
+        {
+            string bufferData = $"{current_trial - 1},{current_block},{timestamp}," +
+                                $"{arrowLocal.x},{arrowLocal.y},{arrowLocal.z}," +
+                                $"{crossHairLocal.x},{crossHairLocal.y}," +
+                                $"0,0," +
+                                $"{radialError},{eventType},{cond_type},{forcePressure}\n";
+
+            bufferPhases[eventType] = bufferData;  // Replace or add the latest for this buffer type
+            return;
+        }
+
+        string data = $"{current_trial - 1},{current_block},{timestamp}," +
+                      $"{arrowLocal.x},{arrowLocal.y},{arrowLocal.z}," +
+                      $"{crossHairLocal.x},{crossHairLocal.y}," +
+                      $"0,0," + // Target is origin
+                      $"{radialError},{eventType},{cond_type},{forcePressure}\n";
+        
+        var orderedBufferData = bufferPhaseOrder
+            .Where(bufferPhases.ContainsKey)
+            .Select(phase => bufferPhases[phase]);
+
+        if (orderedBufferData.Any())
+        {
+            File.AppendAllText(csvPath, string.Join("", orderedBufferData));
+            bufferPhases.Clear();
+        }
+        
+        File.AppendAllText(csvPath, data);
+        Debug.Log("Data entry logged.");
+    }
+
+    private void InitializeCSVHeader()
+    {
+        // Define the header line for the CSV file
+        string header = "Trial#,Block#,Timestamp,Arrow X,Arrow Y,Arrow Z,Crosshair X position,Crosshair Y position,Center-Target X position,Center-Target Y position,Radial Error,Event,Condition,Force\n";
+        
+        // Check if it’s the first trial and block, then add the header if necessary
+        if (current_trial == 1   && !File.Exists(csvPath))
+        {
+            File.AppendAllText(csvPath, header);
+            Debug.Log("CSV header initialized");
+        }
+    }
+    private void EnsureDirectory(string path)
+    {
+        if (!Directory.Exists(path))
+        {
+            Directory.CreateDirectory(path);
+        }
     }
 }

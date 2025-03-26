@@ -10,23 +10,30 @@ using System.IO.Ports;
 using UnityEngine;
 using System.Drawing;
 using UnityEngine.UI; // Required for UI
-using DG.Tweening; // Import DOTween namespac
+using DG.Tweening;
+using System.Runtime.Remoting.Messaging;
+using UnityEngine.XR; // Import DOTween namespac
 
 public class AimShoot : MonoBehaviour
 {
 
-    [SerializeField] Transform CrossHair;
+    public Transform CrossHair;
     [SerializeField] Rigidbody CrossRigid;
     [SerializeField] GameObject cylinderPrefab; // Assign the cylinder prefab in the inspector
     [SerializeField] LineRenderer invisVis; // LineRenderer for debugging the invisible vector
     [SerializeField] bool debugInvisibleVector = true; // Toggle visibility of the LineRenderer
-    [SerializeField] Transform InvisTargetCross;
+    [SerializeField] public Transform InvisTargetCross;
     [SerializeField] Rigidbody InvisTargetRigid;
     [SerializeField] DataOutputAndConfig dataOutputAndConfig;
+    [SerializeField] Phases phaseManager;
+    Header Conditions;
+    [SerializeField] Transform baseOfTarget;
+    [SerializeField] public GameObject featureTarget;
+    [SerializeField] Transform fixationPoint;
 
     // Input vars
-    private float horizontalInput;
-    private float verticalInput;
+    public float horizontalInput;
+    public float verticalInput;
     
     // Aiming Vars
     private float CrossVelocity;
@@ -44,7 +51,7 @@ public class AimShoot : MonoBehaviour
     // Shooting Vars
     private bool nullShoot = false;
     public float shootSpeed = 10f;    // Speed of the cylinder
-    private bool OneDart = true;
+    public bool OneDart = true;
     private float inputTimeout = 0.15f;
     private float lastInputTime = 0f;
     private float inputRadius = 0.4f;
@@ -72,7 +79,7 @@ public class AimShoot : MonoBehaviour
     private int baudRate = 115200;
 
     // Timer bool
-    private float timeTillShoot = 6f;
+    public float timeTillShoot;
     private float bufferTime = 3f;
     private float preShootTime = 5f;
     private bool fadeStarted = false; // Track if fade has started
@@ -85,6 +92,7 @@ public class AimShoot : MonoBehaviour
     private UnityEngine.UI.Image circleTimer_texture;
     [SerializeField]
     private RectTransform rectTransform;
+    private float totalShootTime;
 
     // object reference for random
     private System.Random random = new System.Random();
@@ -94,11 +102,25 @@ public class AimShoot : MonoBehaviour
     private float absoluteMouseY = 0f; // Persistent absolute Y posit
 
     // bools
-    private bool isAiming = false;
+    public bool isAiming = false;
 
     // Test vars
     private float radialStart = 2.5f;
 
+    // onetime assignment timer bool
+    private bool assignTimetillShoot = false;
+
+    // Dot textures
+    [SerializeField] Texture yellowDot;
+    [SerializeField] Texture greenDot;
+
+    // Data collection vars
+    private float timeOffset;
+    public bool dataRecordingEnabled = false;
+    public string[] parts;
+    public int conditionIndex;
+    public Transform arrowCoords;
+    private ExperimentPhase currentPhase;
     
     // Start is called before the first frame update
     void Start()
@@ -120,91 +142,56 @@ public class AimShoot : MonoBehaviour
         //     Debug.LogError($"Error opening serial port: {ex.Message}");
         // }
 
-        // Set initial starting position based on trial number
-        int trialIndex = (PlayerPrefs.GetInt("trialBlock", 1)) % 4;
-        Debug.Log("Trial Index: " + trialIndex);
-        Vector3 newPosition = CrossHair.transform.position;
-
-        switch (trialIndex)
-        {
-            case 0: // Down
-                newPosition.y -= radialStart;
-                break;
-            case 1: // Up
-                newPosition.y += radialStart;
-                break;
-            case 2: // Left
-                newPosition.x -= radialStart;
-                break;
-            case 3: // Right
-                newPosition.x += radialStart;
-                break;
-        }
-
-        CrossHair.transform.position = newPosition;
-        InvisTargetCross.transform.position = newPosition;
-
-        // Set up the LineRenderer properties
-        invisVis.startWidth = 0.05f;
-        invisVis.endWidth = 0.05f;
-        invisVis.material = new Material(Shader.Find("Sprites/Default"));
-        // Generate the initial invisible vector
-        // GenerateInvisibleVector(true); // Generate the initial random vector
+        SetInitialCrosshairPosition();
+        int trialIndex = PlayerPrefs.GetInt("current_trial", 1);
+        ApplyCondition(trialIndex);
+        InitTimerUI();
+        SetupLineRenderer();
         Cursor.visible = false;
-
-        // Get references
-        circleTimer_texture = timerCircle.GetComponent<UnityEngine.UI.Image>();
-        rectTransform = timerCircle.GetComponent<RectTransform>();
-
-        // Set initial opacity
-        UnityEngine.Color color = circleTimer_texture.color;
-        color.a = initialOpacity;
-        circleTimer_texture.color = color;
-
-        // Set initial scale
-        rectTransform.localScale = initialScale;
-
+        phaseManager.CreatePhases();
+        if (trialIndex == 1)
+        {
+            ResetTime();
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (horizontalInput != 0 && verticalInput != 0)
-        {
-            isAiming = true;
-        }
         if (isAiming)
         {
             if (!fadeStarted)
             {
                 fadeStarted = true;
-                FadeInAndShrink(circleTimer_texture, rectTransform, preShootTime);
+                // FadeInAndShrink(circleTimer_texture, rectTransform, preShootTime);
             }
-            if (fadeComplete)
-            {
                 // if (bufferTime > 0f)
                 // {
                 //     bufferTime -= Time.deltaTime;
                 // }
                 // else
                 // {
-                //     if (timeTillShoot >= 0f)
-                //     {
-                //         timeTillShoot -= Time.deltaTime;
-                //         float relativeTime = timeTillShoot / 6f;
-                //         circleTimer_texture.fillAmount = relativeTime;
-                //     }
-                //     else
-                //     {
-                        if (OneDart)
-                        {
-                            Shoot();
-                        }
-                //     }
+            
+            // Get references
+            circleTimer_texture = timerCircle.GetComponent<UnityEngine.UI.Image>();
+            rectTransform = timerCircle.GetComponent<RectTransform>();
+
+            // Set initial opacity
+            UnityEngine.Color color = circleTimer_texture.color;
+            color.a = 255f;
+            circleTimer_texture.color = color;
+            if (timeTillShoot >= 0f)
+            {
+                timeTillShoot -= Time.deltaTime;
+                float relativeTime = timeTillShoot / totalShootTime;
+                circleTimer_texture.fillAmount = relativeTime;
+            }
                 // }
                 // Debug.Log("Undraw now");
-            }
         }
+
+        if (dataRecordingEnabled)
+            dataOutputAndConfig.LogDataEntry(currentPhase.name);
     }
 
     void FixedUpdate()
@@ -224,8 +211,8 @@ public class AimShoot : MonoBehaviour
         //     }
         // }
 
-        Debug.Log($"Normalized Input - Horizontal: {horizontalInput}, Vertical: {verticalInput}");
-        Debug.Log($"Normalized Input - previousHorizontal: {previousHinput}, previousVertical: {previousVinput}");
+        // Debug.Log($"Normalized Input - Horizontal: {horizontalInput}, Vertical: {verticalInput}");
+        // Debug.Log($"Normalized Input - previousHorizontal: {previousHinput}, previousVertical: {previousVinput}");
 
         // if (serialPort != null && serialPort.IsOpen)
         // {
@@ -289,30 +276,28 @@ public class AimShoot : MonoBehaviour
         // Smoothly rotate the invisible vector towards the target vector
         // invisibleVector = Vector3.Lerp(invisibleVector, targetVector, shiftSpeed * Time.fixedDeltaTime).normalized * forceMagnitude;
 
-        if (Input.GetButtonDown("Fire1") && OneDart == true)
-        {
-            Shoot();
-        }
+
 
         // horizontalInput = (Input.GetAxis("Horizontal")) * 0.75f;
         // verticalInput = (Input.GetAxis("Vertical")) * 0.75f;
 
-        ProcessMouseInput();
+        if (!phaseManager.phaseRunning)
+            return;
 
-        if (firstInput && ((Math.Abs(horizontalInput - previousHinput) > inputRadius) || (Math.Abs(verticalInput - previousVinput) > inputRadius)) && OneDart)
+        phaseManager.phaseTimer -= Time.fixedDeltaTime;
+
+        currentPhase = phaseManager.experimentPhases[phaseManager.currentPhaseIndex];
+
+        HandleCurrentPhase(currentPhase);
+
+        currentPhase.onUpdate?.Invoke();
+
+        if (phaseManager.phaseTimer <= 0f)
         {
-            Shoot();
-        }
-
-        MouseMethod();
-
-        // NewMethod();
-
-        // OldMethod();
-
-
-        previousHinput = horizontalInput;
-        previousVinput = verticalInput;       
+            currentPhase.onExit?.Invoke();
+            phaseManager.currentPhaseIndex++;
+            phaseManager.StartNextPhase();
+        }     
     }
 
     private void MouseMethod()
@@ -446,6 +431,9 @@ public class AimShoot : MonoBehaviour
         // Activate the GameObject (make it visible and functional)
         cylinder.SetActive(true);
 
+        arrowCoords = cylinder.transform;
+        dataOutputAndConfig.arrowIsNull = false;
+
         // Apply velocity to the cylinder
         Rigidbody rb = cylinder.GetComponent<Rigidbody>();
         if (rb != null)
@@ -488,7 +476,7 @@ public class AimShoot : MonoBehaviour
         if (string.IsNullOrEmpty(data))
         {return;}
         // Split the input string into components
-        string[] parts = data.Split(',');
+        parts = data.Split(',');
 
         if (parts.Length >= 5)
         {
@@ -561,7 +549,7 @@ public class AimShoot : MonoBehaviour
 
         
 
-        Debug.Log($"Normalized Input - Horizontal: {horizontalInput}, Vertical: {verticalInput}");
+        // Debug.Log($"Normalized Input - Horizontal: {horizontalInput}, Vertical: {verticalInput}");
     }
 
     private void FadeInAndShrink(UnityEngine.UI.Image image, RectTransform rectTransform, float duration)
@@ -570,6 +558,279 @@ public class AimShoot : MonoBehaviour
 
         rectTransform.DOScale(new Vector3(0.012f, 0.012f, 1f), duration) // Shrink smoothly
             .OnComplete(() => fadeComplete = true); // Mark fade as complete when done
+    }
+    void SetInitialCrosshairPosition()
+    {
+        Vector3 newPosition = CrossHair.transform.position;
+        newPosition.y -= 1f; // Down by default
+        newPosition.z = 0.4f;
+        CrossHair.transform.position = newPosition;
+        InvisTargetCross.transform.position = newPosition;
+    }
+
+    private void InitTimerUI()
+    {
+        circleTimer_texture = timerCircle.GetComponent<UnityEngine.UI.Image>();
+        rectTransform = timerCircle.GetComponent<RectTransform>();
+
+        UnityEngine.Color color = circleTimer_texture.color;
+        color.a = initialOpacity;
+        circleTimer_texture.color = color;
+
+        rectTransform.localScale = new Vector3(0.012f, 0.012f, 1f);
+    }
+
+    void SetupLineRenderer()
+    {
+        invisVis.startWidth = 0.05f;
+        invisVis.endWidth = 0.05f;
+        invisVis.material = new Material(Shader.Find("Sprites/Default"));
+    }
+    void UpdateTimerCircle()
+    {
+        timeTillShoot -= Time.deltaTime;
+        float fill = Mathf.Clamp01(timeTillShoot / 6f);
+        circleTimer_texture.fillAmount = fill;
+    }
+
+    bool InputExceededThreshold()
+    {
+        return Mathf.Abs(horizontalInput - previousHinput) > inputRadius ||
+               Mathf.Abs(verticalInput - previousVinput) > inputRadius;
+    }
+
+    private void SetCrosshairVisible(bool visible)
+    {
+        // Toggle the LineRenderer
+        LineRenderer lr = CrossHair.GetComponent<LineRenderer>();
+        if (lr != null)
+            lr.enabled = visible;
+
+        // Toggle child UI images
+        UnityEngine.UI.Image[] childImages = CrossHair.GetComponentsInChildren<UnityEngine.UI.Image>(includeInactive: true);
+        foreach (UnityEngine.UI.Image img in childImages)
+        {
+            img.enabled = visible;
+        }
+    }
+
+
+    private void HandleCurrentPhase(ExperimentPhase phase)
+    {
+        switch (phase.name)
+        {
+            case "ITI":
+                SetCrosshairVisible(false); 
+                break;
+
+            case "Ready":
+                SetCrosshairVisible(true);  
+                break;
+
+            case "Aim":
+                ProcessMouseInput();
+
+                MouseMethod();
+
+                // NewMethod();
+
+                // OldMethod();
+
+
+                previousHinput = horizontalInput;
+                previousVinput = verticalInput;
+                
+                StartCoroutine(YellowFixationDot());
+
+                break;
+
+            // case "Go Cue":
+            //     // Optional: visual cue logic
+            //     break;
+
+            case "Shoot":
+                if (!assignTimetillShoot)
+                {
+                    timeTillShoot = phase.duration;
+                    totalShootTime = phase.duration;
+                    assignTimetillShoot = true;
+                }
+
+                isAiming = true;
+
+                ProcessMouseInput();
+
+                if (firstInput && OneDart)
+                {
+                    if (Input.GetButtonDown("Fire1"))
+                    {
+                        Debug.Log("Shot taken");
+                        Shoot();
+                    }
+                }
+
+                MouseMethod();
+
+                // NewMethod();
+
+                // OldMethod();
+
+
+                previousHinput = horizontalInput;
+                previousVinput = verticalInput;
+
+                StartCoroutine(GreenFixationDot());
+
+                break;
+
+            // case "Feedback":
+            //     // Optional: display feedback cue
+            //     break;
+
+            case "Return":
+                SetCrosshairVisible(false);
+                ResetScene(phase.duration);
+                break;
+        }
+    }
+
+    IEnumerator ResetScene(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        // Close the serial port when the application quits/reloads
+        // if (serialPort != null && serialPort.IsOpen)
+        // {
+        //     serialPort.Close();
+        //     Debug.Log("Serial port closed.");
+        // }
+
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    void ApplyCondition(int trialIndex)
+    {
+        // Wrap around between 1–8 conditions
+        conditionIndex = (trialIndex - 1) % 4 + 1;
+
+        Debug.Log($"Applying Condition {conditionIndex}");
+
+        // Reset all variables first (e.g. Quiet Eye back to 0, etc.)
+        StopAllCoroutines(); // Stop QE shifting if active
+
+        switch (conditionIndex)
+        {
+            // --- NEAR Conditions (No Z Offset) ---
+            case 1: // Near, Scoring, Quiet
+                EnableScoringTarget(true);
+                StartQuietEye(false);
+                break;
+
+            case 2: // Near, Scoring, Noisy
+                EnableScoringTarget(true);
+                StartQuietEye(true);
+                break;
+
+            // case 3: // Near, Blank, Quiet
+            //     EnableScoringTarget(false);
+            //     StartQuietEye(false);
+            //     break;
+
+            // case 4: // Near, Blank, Noisy
+            //     EnableScoringTarget(false);
+            //     StartQuietEye(true);
+            //     break;
+
+            // --- FAR Conditions (Z Offset = harder) ---
+            case 3: // Far, Scoring, Quiet
+                OffsetTargetBack();
+                EnableScoringTarget(true);
+                StartQuietEye(false);
+                break;
+
+            case 4: // Far, Scoring, Noisy
+                OffsetTargetBack();
+                EnableScoringTarget(true);
+                StartQuietEye(true);
+                break;
+
+            // case 7: // Far, Blank, Quiet
+            //     OffsetTargetBack();
+            //     EnableScoringTarget(false);
+            //     StartQuietEye(false);
+            //     break;
+
+            // case 8: // Far, Blank, Noisy
+            //     OffsetTargetBack();
+            //     EnableScoringTarget(false);
+            //     StartQuietEye(true);
+            //     break;
+        }
+    }
+
+    void OffsetTargetBack()
+    {
+        // Set further back on the Z axis
+        Vector3 offsetTarg = baseOfTarget.position;
+        offsetTarg.z += 8f;
+        baseOfTarget.position = offsetTarg;
+    }
+
+    void EnableScoringTarget(bool enable)
+    {
+        // Toggle visibility of scoring target
+        if (featureTarget != null)
+            featureTarget.SetActive(enable);
+    }
+
+    void StartQuietEye(bool enable)
+    {
+        if (enable)
+        {
+            StartCoroutine(QuietEyeOscillate());
+        }
+    }
+
+    IEnumerator QuietEyeOscillate()
+    {
+        while (true)
+        {
+            fixationPoint.transform.position = new Vector3(-0.23f, fixationPoint.localPosition.y, fixationPoint.localPosition.z);
+            yield return new WaitForSeconds(0.5f);
+            fixationPoint.transform.position = new Vector3(0f, fixationPoint.localPosition.y, fixationPoint.localPosition.z);
+            yield return new WaitForSeconds(0.5f);
+            fixationPoint.transform.position = new Vector3(0.23f, fixationPoint.localPosition.y, fixationPoint.localPosition.z);
+            yield return new WaitForSeconds(0.5f);
+            fixationPoint.transform.position = new Vector3(0f, fixationPoint.localPosition.y, fixationPoint.localPosition.z);
+            yield return new WaitForSeconds(0.5f);
+        }
+    }
+    
+    IEnumerator YellowFixationDot()
+    {
+        yield return new WaitForFixedUpdate();
+        // Make dot green when able to shoot
+        MeshRenderer fixationMesh = fixationPoint.GetComponent<MeshRenderer>();
+        Material fixationMaterial = fixationMesh.material;
+        fixationMaterial.mainTexture = yellowDot;
+    }
+
+    IEnumerator GreenFixationDot()
+    {
+        yield return new WaitForFixedUpdate();
+        // Make dot green when able to shoot
+        MeshRenderer fixationMesh = fixationPoint.GetComponent<MeshRenderer>();
+        Material fixationMaterial = fixationMesh.material;
+        fixationMaterial.mainTexture = greenDot;
+    }
+
+    public float GetAdjustedTime()
+    {
+        return Time.time - timeOffset; // Use this instead of Time.time
+    }
+
+    void ResetTime()
+    {
+        timeOffset = Time.time; // Store the current time as the new "zero"
     }
 
 }

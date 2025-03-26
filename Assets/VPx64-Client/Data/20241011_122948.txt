@@ -1,0 +1,47 @@
+3	Product Version: USB-60x3
+3	Executable File Version: 2.9.5,311 
+3	Program Build Date: Dec 13 2019,  12:14:04
+3	Customer Serial Number:  200-1680-1-1
+3	Customer Name:  NNL DEMO 
+3	Customer Organization:  NNL DEMO 
+3	--------------------------------------------------------
+3	TimeValues	2024	10	11	19	29	49	UTC
+3	TimeStamp	Friday, October 11, 2024, 12:29:49 PM 
+3	DataFormat	2.9.3,113
+3	ScreenSize	142.857	107.143	// full screen size (not measured lines) in mm
+3	ViewingDistance	100
+3	InterPupillaryDistance	60
+3	ImageShape	Fit
+3	SmoothingMethod	ExponentialMovingAverage
+3	SmoothingPoints	4
+3	BinocularAveraging	Off
+3	eyeA:pupilSegmentationMethod	Ellipse
+3	eyeA:gazeNudge	0	0
+3	eyeB:pupilSegmentationMethod	Ellipse
+3	eyeB:gazeNudge	0	0
+3	--------------------------------------------------------
+3	Data Notes:
+3	 1) X_Gaze and Y_Gaze are uncorrected gaze values (no smoothing, etc...).
+3	 2) X_CorrectedGaze and Y_CorrectedGaze are corrected gaze values that may include smoothing, averaging, parallax correction, nudging, etc...
+3	 3) Regions are calculated with respect to the corrected gaze values.
+3	 4) PupilWidth and PupilHeight calculations are relative to which pupil segmentation method is active.
+3	    a) Ellipse - PupilWidth is the major-axis (larger value) and PupilHeight is the minor-axis (smaller value).
+3	       The major-axis and the minor-axis are both normalized by the width of the EyeCamera window so the scales of the axes are commensurable.
+3	    b) Oval Fit - PupilWidth is the HORIZONTAL dimension and PupilHeight is the VERTICAL dimension of the rectangular bounding box of the unrotated Oval.
+3	       The HORIZONTAL and VERTICAL dimensions are both normalized by the width and height of the EyeCamera window respectively so the scales of the axes are incommensurable (see manual for details).
+3	    c) Centroid - PupilWidth and PupilHeight are 0, because no pupil size is obtained.
+3	--------------------------------------------------------
+3	 idName	
+3	 idTest	
+3	 idSession	
+3	 idNotes	
+17	MovieFile	1	D:\UnityProjectsGit\GolfSim\Assets\VPx64-Client/Data/20241011_122948.avi
+3	--------------------------------------------------------
+6	ATT	ADT	ALX	ALY	ACX	ACY	ARI	APW	APH	AQU	AFX	BTT	BDT	BLX	BLY	BCX	BCY	BRI	BPW	BPH	BQU	BFX	GPX	GPY	GPZ	CNT	MRK	STR
+5	TotalTime	DeltaTime	X_Gaze	Y_Gaze	X_CorrectedGaze	Y_CorrectedGaze	Region	PupilWidth	PupilHeight	Quality	Fixation	TotalTime	DeltaTime	X_Gaze	Y_Gaze	X_CorrectedGaze	Y_CorrectedGaze	Region	PupilWidth	PupilHeight	Quality	Fixation	 X 	 Y 	 Z 	Count	Marker	String
+7	 0.000000	EyeA FrameRate	60
+7	 0.000000	EyeB FrameRate	60
+16	 0.000000	STARTUP.BMP
+777	  0.0000	MovieFrame	2	0
+10	  0.0031	  22.4383	0.3030	0.3532	0.3023	0.3549	-1	0.2183	0.2152	1	11.6996	  0.0009	  25.0440	0.6445	0.4920	0.6432	0.4900	-1	0.2345	0.2306	1	24.6813	 -0.39	  0.83	  5.52	0	+	Game time (seconds): 18.0274 Stroke: 0
+10	  0.0141	  10.9492	0.3047	0.3630	0.3032	0.3581	-1	0.2172	0.2100	1	11.7105	  0.0092	   8.3000	0.6504	0.5111	0.6461	0.4984	-1	0.2380	0.2265	1	24.6896	 -0.36	  0.77	  5.51	1		

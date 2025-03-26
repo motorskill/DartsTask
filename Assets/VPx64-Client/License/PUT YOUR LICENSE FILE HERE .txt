@@ -1,0 +1,4 @@
+ViewPoint EyeTracker requires a ViewPoint License (.vpl) file.
+
+ViewPoint~Voltage requires a ViewPoint Voltage License (.vvl) file.
+

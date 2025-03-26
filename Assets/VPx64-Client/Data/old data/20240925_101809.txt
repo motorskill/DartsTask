@@ -1,0 +1,54 @@
+3	Product Version: USB-60x3
+3	Executable File Version: 2.9.5,311 
+3	Program Build Date: Dec 13 2019,  12:14:04
+3	Customer Serial Number:  200-1680-1-1
+3	Customer Name:  NNL DEMO 
+3	Customer Organization:  NNL DEMO 
+3	--------------------------------------------------------
+3	TimeValues	2024	9	25	17	18	9	UTC
+3	TimeStamp	Wednesday, September 25, 2024, 10:18:09 AM 
+3	DataFormat	2.9.3,113
+3	ScreenSize	142.857	107.143	// full screen size (not measured lines) in mm
+3	ViewingDistance	100
+3	InterPupillaryDistance	60
+3	ImageShape	Fit
+3	SmoothingMethod	ExponentialMovingAverage
+3	SmoothingPoints	4
+3	BinocularAveraging	Off
+3	eyeA:pupilSegmentationMethod	Ellipse
+3	eyeA:gazeNudge	0	0
+3	eyeB:pupilSegmentationMethod	Ellipse
+3	eyeB:gazeNudge	0	0
+3	--------------------------------------------------------
+3	Data Notes:
+3	 1) X_Gaze and Y_Gaze are uncorrected gaze values (no smoothing, etc...).
+3	 2) X_CorrectedGaze and Y_CorrectedGaze are corrected gaze values that may include smoothing, averaging, parallax correction, nudging, etc...
+3	 3) Regions are calculated with respect to the corrected gaze values.
+3	 4) PupilWidth and PupilHeight calculations are relative to which pupil segmentation method is active.
+3	    a) Ellipse - PupilWidth is the major-axis (larger value) and PupilHeight is the minor-axis (smaller value).
+3	       The major-axis and the minor-axis are both normalized by the width of the EyeCamera window so the scales of the axes are commensurable.
+3	    b) Oval Fit - PupilWidth is the HORIZONTAL dimension and PupilHeight is the VERTICAL dimension of the rectangular bounding box of the unrotated Oval.
+3	       The HORIZONTAL and VERTICAL dimensions are both normalized by the width and height of the EyeCamera window respectively so the scales of the axes are incommensurable (see manual for details).
+3	    c) Centroid - PupilWidth and PupilHeight are 0, because no pupil size is obtained.
+3	--------------------------------------------------------
+3	 idName	
+3	 idTest	
+3	 idSession	
+3	 idNotes	
+17	MovieFile	1	D:\UnityProjectsGit\GolfSim\Assets\VPx64-Client/Data/20240925_101809.avi
+3	--------------------------------------------------------
+6	ATT	ADT	ALX	ALY	ACX	ACY	ARI	APW	APH	AQU	AFX	BTT	BDT	BLX	BLY	BCX	BCY	BRI	BPW	BPH	BQU	BFX	GPX	GPY	GPZ	CNT	MRK	STR
+5	TotalTime	DeltaTime	X_Gaze	Y_Gaze	X_CorrectedGaze	Y_CorrectedGaze	Region	PupilWidth	PupilHeight	Quality	Fixation	TotalTime	DeltaTime	X_Gaze	Y_Gaze	X_CorrectedGaze	Y_CorrectedGaze	Region	PupilWidth	PupilHeight	Quality	Fixation	 X 	 Y 	 Z 	Count	Marker	String
+7	 0.000000	EyeA FrameRate	60
+7	 0.000000	EyeB FrameRate	60
+16	 0.000000	STARTUP.BMP
+10	  0.0000	  12.3811	0.4618	0.4554	0.4621	0.4563	1	0.2304	0.2202	1	2.7622	 -0.0045	   9.6389	0.5598	0.4846	0.5598	0.4844	-1	0.2558	0.2390	1	2.7028	  0.16	  0.32	  8.11	0	=,+	END
+10	  0.0070	   6.9639	0.4621	0.4571	0.4621	0.4566	1	0.2313	0.2219	1	2.7691	  0.0052	   9.7040	0.5587	0.4813	0.5593	0.4831	-1	0.2552	0.2363	1	2.7125	  0.15	  0.32	  8.12	1 Game time (seconds): 22.68761 Stroke: 0
+777	  0.0287	MovieFrame	2	0
+10	  0.0334	  26.4302	0.4614	0.4550	0.4618	0.4559	1	0.2307	0.2207	1	2.7956	  0.0327	   3.4188	0.5581	0.4787	0.5586	0.4811	-1	0.2585	0.2385	1	2.7400	  0.15	  0.34	  8.13	2 Game time (seconds): 22.68761 Stroke: 0
+10	  0.0403	   6.8962	0.4614	0.4557	0.4616	0.4558	1	0.2312	0.2213	1	2.8025	  0.0327	   3.4188	0.5581	0.4787	0.5586	0.4811	-1	0.2585	0.2385	1	2.7400	  0.14	  0.34	  8.12	3 Game time (seconds): 22.71537 Stroke: 0
+777	  0.0622	MovieFrame	2	1
+10	  0.0670	  26.6936	0.4605	0.4521	0.4612	0.4544	1	0.2333	0.2240	1	2.8292	  0.0661	   3.6883	0.5573	0.4749	0.5579	0.4784	-1	0.2600	0.2390	1	2.7734	  0.14	  0.36	  8.13	4 Game time (seconds): 22.71824 Stroke: 0
+10	  0.0737	   6.7241	0.4615	0.4527	0.4613	0.4537	1	0.2320	0.2222	1	2.8359	  0.0661	   3.6883	0.5573	0.4749	0.5579	0.4784	-1	0.2600	0.2390	1	2.7734	  0.14	  0.36	  8.13	5 Game time (seconds): 22.74603 Stroke: 0
+777	  0.0953	MovieFrame	2	2
+10	  0.1003	  26.5466	0.4609	0.4503	0.4612	0.4524	1	0.2321	0.2252	1	2.8624	  0.0993	   3.5868	0.5574	0.4751	0.5577	0.4771	-1	0.2595	0.2392	1	2.8066	  0.13	  0.38	  8.13	6 Game time (seconds): 22.7521 Stroke: 0
