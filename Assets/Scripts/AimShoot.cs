@@ -25,6 +25,7 @@ public class AimShoot : MonoBehaviour
     [SerializeField] public Transform InvisTargetCross;
     [SerializeField] Rigidbody InvisTargetRigid;
     [SerializeField] DataOutputAndConfig dataOutputAndConfig;
+    public EyeLinkManager eyeLinkManager;
     [SerializeField] Phases phaseManager;
     Header Conditions;
     [SerializeField] Transform baseOfTarget;
@@ -103,6 +104,7 @@ public class AimShoot : MonoBehaviour
 
     // bools
     public bool isAiming = false;
+    public bool hasShot = false;
 
     // Test vars
     private float radialStart = 2.5f;
@@ -147,7 +149,7 @@ public class AimShoot : MonoBehaviour
         ApplyCondition(trialIndex);
         InitTimerUI();
         SetupLineRenderer();
-        Cursor.visible = false;
+        // Cursor.visible = false;
         phaseManager.CreatePhases();
         if (trialIndex == 1)
         {
@@ -197,69 +199,6 @@ public class AimShoot : MonoBehaviour
     void FixedUpdate()
     {
 
-        // // Read the most recent data and log it
-        // if (!serialPort.IsOpen)
-        // {
-        //     try
-        //     {
-        //         serialPort.Open();
-        //         Debug.Log("Serial port opened successfully.");
-        //     }
-        //     catch (System.Exception ex)
-        //     {
-        //         Debug.LogError($"Error opening serial port: {ex.Message}");
-        //     }
-        // }
-
-        // Debug.Log($"Normalized Input - Horizontal: {horizontalInput}, Vertical: {verticalInput}");
-        // Debug.Log($"Normalized Input - previousHorizontal: {previousHinput}, previousVertical: {previousVinput}");
-
-        // if (serialPort != null && serialPort.IsOpen)
-        // {
-        //    try
-        //     {
-        //         // Check if there is data in the buffer
-        //         if (serialPort.BytesToRead > 0)
-        //         {
-        //             // Read all available data without blocking
-        //             string data = serialPort.ReadLine();
-                    
-        //             lock (lockObject)
-        //             {
-        //                 mostRecentData = data; // Save the most recent data
-        //             }
-                    
-        //             // Process the data for x and y
-        //             ProcessInputData(mostRecentData);
-        //             if (firstInput && ((Math.Abs(horizontalInput - previousHinput) > inputRadius) || (Math.Abs(verticalInput - previousVinput) > inputRadius)) && OneDart)
-        //             {
-        //                 Shoot();
-        //             }
-
-        //             nullShoot = true;
-
-        //             lastInputTime = Time.time;
-
-        //             if (!firstInput)
-        //             {
-        //                 firstInput = true;
-        //             }
-        //         }
-        //         else if (Time.time - lastInputTime > inputTimeout )
-        //         {
-        //             Debug.Log("input not caught");
-        //             if (nullShoot && OneDart)
-        //             {
-        //                 Shoot();
-        //             }
-        //         }
-        //     }
-        //     catch (System.Exception ex)
-        //     {
-        //         Debug.LogError($"Error reading from serial port: {ex.Message}");
-        //     }
-        // }
-
         // // Debug.Log("Target Vector = " + targetVector);
         // timeSinceLastShift += Time.fixedDeltaTime;
 
@@ -276,10 +215,9 @@ public class AimShoot : MonoBehaviour
         // Smoothly rotate the invisible vector towards the target vector
         // invisibleVector = Vector3.Lerp(invisibleVector, targetVector, shiftSpeed * Time.fixedDeltaTime).normalized * forceMagnitude;
 
-
-
-        // horizontalInput = (Input.GetAxis("Horizontal")) * 0.75f;
-        // verticalInput = (Input.GetAxis("Vertical")) * 0.75f;
+        // input scaling for mouse
+        horizontalInput = (Input.GetAxis("Horizontal")) * 0.75f;
+        verticalInput = (Input.GetAxis("Vertical")) * 0.75f;
 
         if (!phaseManager.phaseRunning)
             return;
@@ -444,9 +382,9 @@ public class AimShoot : MonoBehaviour
         {
             Debug.LogError("No Rigidbody attached to the cylinder prefab!");
         }
+        hasShot = true;
         // Start coroutine to reset OneDart after destruction
         StartCoroutine(ResetOneDart(cylinder, 5f));
-
     }
 
     // Coroutine to reset OneDart
@@ -455,11 +393,16 @@ public class AimShoot : MonoBehaviour
         // Wait for the delay time (same as the destruction time)
         yield return new WaitForSeconds(delay);
         // Close the serial port when the application quits/reloads
-        // if (serialPort != null && serialPort.IsOpen)
-        // {
-        //     serialPort.Close();
-        //     Debug.Log("Serial port closed.");
-        // }
+        if (serialPort != null && serialPort.IsOpen)
+        {
+            serialPort.Close();
+            Debug.Log("Serial port closed.");
+        }
+
+        if (eyeLinkManager != null)
+        {
+            eyeLinkManager.StopRecording();
+        }
 
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 
@@ -470,6 +413,71 @@ public class AimShoot : MonoBehaviour
         }
 
         // OneDart = true;
+    }
+    private void PreProcessInputData()
+    {
+        // Read the most recent data and log it
+        if (!serialPort.IsOpen)
+        {
+            try
+            {
+                serialPort.Open();
+                Debug.Log("Serial port opened successfully.");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Error opening serial port: {ex.Message}");
+            }
+        }
+
+        Debug.Log($"Normalized Input - Horizontal: {horizontalInput}, Vertical: {verticalInput}");
+        Debug.Log($"Normalized Input - previousHorizontal: {previousHinput}, previousVertical: {previousVinput}");
+
+        if (serialPort != null && serialPort.IsOpen)
+        {
+           try
+            {
+                // Check if there is data in the buffer
+                if (serialPort.BytesToRead > 0)
+                {
+                    // Read all available data without blocking
+                    string data = serialPort.ReadLine();
+                    
+                    lock (lockObject)
+                    {
+                        mostRecentData = data; // Save the most recent data
+                    }
+                    
+                    // Process the data for x and y
+                    ProcessInputData(mostRecentData);
+                    // if (firstInput && ((Math.Abs(horizontalInput - previousHinput) > inputRadius) || (Math.Abs(verticalInput - previousVinput) > inputRadius)) && OneDart)
+                    // {
+                    //     Shoot();
+                    // }
+
+                    nullShoot = true;
+
+                    lastInputTime = Time.time;
+
+                    if (!firstInput)
+                    {
+                        firstInput = true;
+                    }
+                }
+                else if (Time.time - lastInputTime > inputTimeout) // add another variable for shooting during shooting phase not aim phase
+                {
+                    Debug.Log("input not caught");
+                    if (nullShoot && OneDart)
+                    {
+                        Shoot();
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Error reading from serial port: {ex.Message}");
+            }
+        }
     }
     private void ProcessInputData(string data)
     {
@@ -620,14 +628,18 @@ public class AimShoot : MonoBehaviour
         switch (phase.name)
         {
             case "ITI":
-                SetCrosshairVisible(false); 
+                SetCrosshairVisible(false);
+                lastInputTime = Time.time; 
                 break;
 
             case "Ready":
-                SetCrosshairVisible(true);  
+                SetCrosshairVisible(true);
+                lastInputTime = Time.time;
                 break;
 
             case "Aim":
+                lastInputTime = Time.time;
+                // PreProcessInputData();
                 ProcessMouseInput();
 
                 MouseMethod();
@@ -658,16 +670,8 @@ public class AimShoot : MonoBehaviour
 
                 isAiming = true;
 
+                // PreProcessInputData();
                 ProcessMouseInput();
-
-                if (firstInput && OneDart)
-                {
-                    if (Input.GetButtonDown("Fire1"))
-                    {
-                        Debug.Log("Shot taken");
-                        Shoot();
-                    }
-                }
 
                 MouseMethod();
 
@@ -679,6 +683,11 @@ public class AimShoot : MonoBehaviour
                 previousHinput = horizontalInput;
                 previousVinput = verticalInput;
 
+                if (Input.GetKeyDown(KeyCode.Mouse0) && OneDart)
+                {
+                    Shoot();
+                }
+
                 StartCoroutine(GreenFixationDot());
 
                 break;
@@ -689,23 +698,17 @@ public class AimShoot : MonoBehaviour
 
             case "Return":
                 SetCrosshairVisible(false);
-                ResetScene(phase.duration);
+                if (serialPort != null && serialPort.IsOpen)
+                {
+                    serialPort.Close();
+                    Debug.Log("Serial port closed.");
+                }
+                
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
                 break;
         }
     }
 
-    IEnumerator ResetScene(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        // Close the serial port when the application quits/reloads
-        // if (serialPort != null && serialPort.IsOpen)
-        // {
-        //     serialPort.Close();
-        //     Debug.Log("Serial port closed.");
-        // }
-
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-    }
 
     void ApplyCondition(int trialIndex)
     {

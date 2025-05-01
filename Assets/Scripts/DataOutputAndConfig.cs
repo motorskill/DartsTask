@@ -12,6 +12,7 @@ using Unity.VisualScripting;
 public class DataOutputAndConfig : MonoBehaviour
 {
     [SerializeField] private AimShoot aimShoot;
+    public EyeLinkManager eyeLinkManager;
     
     private int subjectNumber;
     private string subjectID = null;
@@ -31,7 +32,8 @@ public class DataOutputAndConfig : MonoBehaviour
 
     void Start()
     {
-        subjectNumber = 1;
+        subjectNumber = PlayerPrefs.GetInt("subjectTracker", 1);
+        subjectID = PlayerPrefs.GetString("subjectID", null);
         InitializeConfiguration();
         SetupTrialData();
         LoadSubjectData();
@@ -39,6 +41,24 @@ public class DataOutputAndConfig : MonoBehaviour
         if (aimShoot.dataRecordingEnabled)
         {
             InitializeCSVHeader();
+        }
+
+        if (aimShoot.dataRecordingEnabled && eyeLinkManager != null)
+        {
+            if (string.IsNullOrEmpty(subjectID))
+            {
+                eyeLinkManager.dataFileName = $"{subjectNumber}{current_block}{current_trial-1}.edf";
+            }
+            else
+            {
+                string truncatedID = subjectID.Length >= 2 ? subjectID.Substring(0, 2) : subjectID;
+                eyeLinkManager.dataFileName = $"{truncatedID}{current_block}{current_trial - 1}.edf";
+            }
+            eyeLinkManager.InitEyeLink();
+            if (!eyeLinkManager.connectionActive)
+            {
+                eyeLinkManager.StartRecording();
+            }
         }
         
         UpdateTrialData();
@@ -63,8 +83,6 @@ public class DataOutputAndConfig : MonoBehaviour
 
     private void LoadSubjectData()
     {
-        subjectNumber = PlayerPrefs.GetInt("subjectTracker", 1);
-        subjectID = PlayerPrefs.GetString("subjectID", null);
         if (string.IsNullOrEmpty(subjectID))
         {
             csvPath = $"{directoryPath}/Subject{subjectNumber}.csv";
@@ -94,6 +112,11 @@ public class DataOutputAndConfig : MonoBehaviour
             {
                 aimShoot.serialPort.Close();
                 Debug.Log("Serial port closed.");
+            }
+            if (eyeLinkManager != null)
+            {
+                eyeLinkManager.StopRecording();
+                EyelinkCoreInterop.close_eyelink_connection();
             }
             #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
@@ -158,14 +181,19 @@ public class DataOutputAndConfig : MonoBehaviour
                 break;
         }
 
-        float forcePressure;
+        float forcePressure; float tabletY; float tabletX;
         try
         {
             float.TryParse(aimShoot.parts[4], out forcePressure);
+            float.TryParse(aimShoot.parts[3], out tabletY);
+            float.TryParse(aimShoot.parts[2], out tabletX);
+
         }
         catch
         {
             forcePressure = 0f;
+            tabletY = 0f;
+            tabletX = 0f;
         }
 
         if (eventType == "Shoot")
@@ -181,21 +209,28 @@ public class DataOutputAndConfig : MonoBehaviour
         }
         else if (bufferPhaseOrder.Contains(eventType))
         {
-            string bufferData = $"{current_trial - 1},{current_block},{timestamp}," +
+            string bufferData = $"{subjectID}," +
+                                $"{current_trial - 1},{current_block},{timestamp}," +
                                 $"{arrowLocal.x},{arrowLocal.y},{arrowLocal.z}," +
                                 $"{crossHairLocal.x},{crossHairLocal.y}," +
                                 $"0,0," +
-                                $"{radialError},{eventType},{cond_type},{forcePressure}\n";
+                                $"{radialError},{eventType},{cond_type},{tabletX},{tabletY},{forcePressure}\n";
 
             bufferPhases[eventType] = bufferData;  // Replace or add the latest for this buffer type
             return;
         }
 
-        string data = $"{current_trial - 1},{current_block},{timestamp}," +
+        // if (eyeLinkManager != null && eyeLinkManager.TryGetLatestGaze(out float gazeX, out float gazeY, out long t))
+        // {
+        //     Debug.Log($"Gaze sample at {t}: ({gazeX}, {gazeY})");
+        // }
+
+        string data = $"{subjectID}," +
+                      $"{current_trial - 1},{current_block},{timestamp}," +
                       $"{arrowLocal.x},{arrowLocal.y},{arrowLocal.z}," +
                       $"{crossHairLocal.x},{crossHairLocal.y}," +
                       $"0,0," + // Target is origin
-                      $"{radialError},{eventType},{cond_type},{forcePressure}\n";
+                      $"{radialError},{eventType},{cond_type},{tabletX},{tabletY},{forcePressure}\n";
         
         var orderedBufferData = bufferPhaseOrder
             .Where(bufferPhases.ContainsKey)
@@ -214,7 +249,7 @@ public class DataOutputAndConfig : MonoBehaviour
     private void InitializeCSVHeader()
     {
         // Define the header line for the CSV file
-        string header = "Trial#,Block#,Timestamp,Arrow X,Arrow Y,Arrow Z,Crosshair X position,Crosshair Y position,Center-Target X position,Center-Target Y position,Radial Error,Event,Condition,Force\n";
+        string header = "SubjectID,Trial#,Block#,Timestamp,Arrow X,Arrow Y,Arrow Z,Crosshair X position,Crosshair Y position,Center-Target X position,Center-Target Y position,Radial Error,Event,Condition,tabletX,tabletY,Force\n";
         
         // Check if it’s the first trial and block, then add the header if necessary
         if (current_trial == 1   && !File.Exists(csvPath))
