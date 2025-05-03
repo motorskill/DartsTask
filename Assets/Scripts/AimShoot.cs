@@ -793,18 +793,18 @@ public class AimShoot : MonoBehaviour
         }
     }
 
-    IEnumerator QuietEyeOscillate()
+    IEnumerator QuietEyeOscillate() 
     {
+        float moveSpeed = -.01f;
         while (true)
         {
-            fixationPoint.transform.position = new Vector3(-0.23f, fixationPoint.localPosition.y, fixationPoint.localPosition.z);
-            yield return new WaitForSeconds(0.5f);
-            fixationPoint.transform.position = new Vector3(0f, fixationPoint.localPosition.y, fixationPoint.localPosition.z);
-            yield return new WaitForSeconds(0.5f);
-            fixationPoint.transform.position = new Vector3(0.23f, fixationPoint.localPosition.y, fixationPoint.localPosition.z);
-            yield return new WaitForSeconds(0.5f);
-            fixationPoint.transform.position = new Vector3(0f, fixationPoint.localPosition.y, fixationPoint.localPosition.z);
-            yield return new WaitForSeconds(0.5f);
+            if (Math.Abs(fixationPoint.transform.position.x) >= .23f)
+            {
+                moveSpeed = -moveSpeed;
+            }
+
+            fixationPoint.transform.position = new Vector3(fixationPoint.transform.position.x + moveSpeed, fixationPoint.localPosition.y, fixationPoint.localPosition.z);
+            yield return new WaitForSeconds(.01f);
         }
     }
     
