@@ -745,13 +745,13 @@ public class AimShoot : MonoBehaviour
 
             // --- FAR Conditions (Z Offset = harder) ---
             case 3: // Far, Scoring, Quiet
-                OffsetTargetBack();
+                ShrinkTarget();
                 EnableScoringTarget(true);
                 StartQuietEye(false);
                 break;
 
             case 4: // Far, Scoring, Noisy
-                OffsetTargetBack();
+                ShrinkTarget();
                 EnableScoringTarget(true);
                 StartQuietEye(true);
                 break;
@@ -770,12 +770,12 @@ public class AimShoot : MonoBehaviour
         }
     }
 
-    void OffsetTargetBack()
+    void ShrinkTarget()
     {
-        // Set further back on the Z axis
-        Vector3 offsetTarg = baseOfTarget.position;
-        offsetTarg.z += 8f;
-        baseOfTarget.position = offsetTarg;
+        foreach (Transform child in baseOfTarget)
+        {
+            child.localScale *= 0.5f;
+        }
     }
 
     void EnableScoringTarget(bool enable)
@@ -795,7 +795,7 @@ public class AimShoot : MonoBehaviour
 
     IEnumerator QuietEyeOscillate() 
     {
-        float moveSpeed = -.01f;
+        float moveSpeed = -.005f;
         while (true)
         {
             if (Math.Abs(fixationPoint.transform.position.x) >= .23f)
