@@ -16,7 +16,7 @@ public class Phases : MonoBehaviour
     {
         experimentPhases = new List<ExperimentPhase>
         {
-            new ExperimentPhase("ITI", UnityEngine.Random.Range(4f, 16f), () =>
+            new ExperimentPhase("ITI", UnityEngine.Random.Range(4f, 8f), () =>
             {
                 Debug.Log("→ ITI: show fixation, disable input");
             }),
@@ -32,7 +32,7 @@ public class Phases : MonoBehaviour
             // {
             //     Debug.Log("→ Go Cue: prepare to shoot (visual cue here)");
             // }),
-            new ExperimentPhase("Shoot", UnityEngine.Random.Range(5f, 10f), () =>
+            new ExperimentPhase("Shoot", 0.75f, () =>
             {
                 Debug.Log("→ Shoot: detect finger lift or input");
             }),
@@ -53,7 +53,8 @@ public class Phases : MonoBehaviour
     {
         if (currentPhaseIndex >= experimentPhases.Count)
         {
-            currentPhaseIndex = 0;
+            Debug.Log("All phases completed.");
+            return;
         }
 
         ExperimentPhase phase = experimentPhases[currentPhaseIndex];

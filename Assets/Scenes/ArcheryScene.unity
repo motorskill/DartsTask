@@ -310,20 +310,20 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0.046499968, g: 1, b: 0, a: 1}
-      key1: {r: 0.047058824, g: 1, b: 0, a: 1}
-      key2: {r: 0.047058824, g: 1, b: 0, a: 0}
-      key3: {r: 0.047058824, g: 1, b: 0, a: 0}
+      key0: {r: 0, g: 1, b: 0.8985245, a: 1}
+      key1: {r: 0, g: 1, b: 0.8985245, a: 1}
+      key2: {r: 0.04705883, g: 1, b: 0, a: 0}
+      key3: {r: 0.04705883, g: 1, b: 0, a: 0}
       key4: {r: 0.04705883, g: 1, b: 0, a: 0}
-      key5: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0.04705883, g: 1, b: 0, a: 0}
       key6: {r: 0, g: 0, b: 0, a: 0}
       key7: {r: 0, g: 0, b: 0, a: 0}
       ctime0: 0
-      ctime1: 14456
-      ctime2: 26407
-      ctime3: 34502
+      ctime1: 65535
+      ctime2: 65535
+      ctime3: 65535
       ctime4: 65535
-      ctime5: 0
+      ctime5: 65535
       ctime6: 0
       ctime7: 0
       atime0: 193
@@ -336,7 +336,7 @@ LineRenderer:
       atime7: 0
       m_Mode: 1
       m_ColorSpace: 0
-      m_NumColorKeys: 5
+      m_NumColorKeys: 2
       m_NumAlphaKeys: 2
     numCornerVertices: 0
     numCapVertices: 0
@@ -360,7 +360,7 @@ Transform:
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -960, y: -539, z: -0.75}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 759171153}
   - {fileID: 1674643824}
@@ -381,9 +381,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Crosshair: {fileID: 60511108}
   CurrentCrosshairPos: {fileID: 60511109}
-  width: 0.05
+  width: 0.025
   steps: 36
-  radius: 0.5
+  radius: 0.3
   crossLength: 0.5
 --- !u!114 &60511111
 MonoBehaviour:
@@ -427,9 +427,10 @@ MonoBehaviour:
   circleTimer_texture: {fileID: 2099805052}
   rectTransform: {fileID: 2099805051}
   isAiming: 0
+  hasShot: 0
   yellowDot: {fileID: 2800000, guid: f486880ab95f64bf1be360c7299821b3, type: 3}
   greenDot: {fileID: 2800000, guid: e8e5a7cdc10364eb784b07c9552d0117, type: 3}
-  dataRecordingEnabled: 1
+  dataRecordingEnabled: 0
   parts: []
   conditionIndex: 0
   arrowCoords: {fileID: 792812306}
@@ -460,6 +461,52 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!1 &107338176
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 107338178}
+  - component: {fileID: 107338177}
+  m_Layer: 0
+  m_Name: ViewpointManger
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &107338177
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 107338176}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 380a65fcaf54e4bce82b3271b8240cf6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  aimShoot: {fileID: 60511111}
+  dataOutput: {fileID: 1565567766}
+--- !u!4 &107338178
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 107338176}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &244375730
 GameObject:
   m_ObjectHideFlags: 0
@@ -1020,52 +1067,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 578602448}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &652283052
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 652283054}
-  - component: {fileID: 652283053}
-  m_Layer: 0
-  m_Name: EyelinkManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &652283053
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 652283052}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b8b7867418c5ede4e99df5ddc7d19825, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  dataFileName: 
-  isRecording: 0
---- !u!4 &652283054
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 652283052}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &701300073
 GameObject:
   m_ObjectHideFlags: 0
@@ -2496,7 +2497,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   aimShoot: {fileID: 60511111}
-  eyeLinkManager: {fileID: 652283053}
   current_trial: 0
   current_block: 0
   arrowIsNull: 1
@@ -2867,7 +2867,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2099805051
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2894,7 +2894,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2099805050}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
@@ -2942,4 +2942,4 @@ SceneRoots:
   - {fileID: 287449114}
   - {fileID: 1069183915}
   - {fileID: 1834159650}
-  - {fileID: 652283054}
+  - {fileID: 107338178}

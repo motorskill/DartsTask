@@ -43,7 +43,9 @@ public class AimShoot : MonoBehaviour
     public float acceleration = 5f;        // Acceleration rate
     public float deceleration;        // Deceleration rate
     private float previousHinput;
+    private float previousHinputSign;
     private float previousVinput;
+    private float previousVinputSign;
 
     // variables to track initial input position
     private bool hasSetInitialPosition = false;
@@ -57,6 +59,11 @@ public class AimShoot : MonoBehaviour
     private float lastInputTime = 0f;
     private float inputRadius = 0.4f;
     private bool firstInput = false;
+    private float leastInput = 0.02f;
+    private bool generateRandomVec = true;
+    private bool initAngle = true;
+    private double angle;
+    private Rigidbody currentDartRigidbody;
 
     // Random influence
     private Vector3 invisibleVector; // The "invisible force" vector
@@ -109,8 +116,9 @@ public class AimShoot : MonoBehaviour
     // Test vars
     private float radialStart = 2.5f;
 
-    // onetime assignment timer bool
+    // onetime bools
     private bool assignTimetillShoot = false;
+    private bool eyeOscillating = false;
 
     // Dot textures
     [SerializeField] Texture yellowDot;
@@ -127,22 +135,22 @@ public class AimShoot : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        // // Initialize the serial port
-        // serialPort = new SerialPort(portName, baudRate);
-        // serialPort.Parity = Parity.None;
-        // serialPort.DataBits = 8;
-        // serialPort.StopBits = StopBits.One;
-        // serialPort.Handshake = Handshake.None;
+        // Initialize the serial port
+        serialPort = new SerialPort(portName, baudRate);
+        serialPort.Parity = Parity.None;
+        serialPort.DataBits = 8;
+        serialPort.StopBits = StopBits.One;
+        serialPort.Handshake = Handshake.None;
 
-        // try
-        // {
-        //     serialPort.Open();
-        //     Debug.Log("Serial port opened successfully.");
-        // }
-        // catch (System.Exception ex)
-        // {
-        //     Debug.LogError($"Error opening serial port: {ex.Message}");
-        // }
+        try
+        {
+            serialPort.Open();
+            Debug.Log("Serial port opened successfully.");
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"Error opening serial port: {ex.Message}");
+        }
 
         SetInitialCrosshairPosition();
         int trialIndex = PlayerPrefs.GetInt("current_trial", 1);
@@ -174,20 +182,20 @@ public class AimShoot : MonoBehaviour
                 // else
                 // {
             
-            // Get references
-            circleTimer_texture = timerCircle.GetComponent<UnityEngine.UI.Image>();
-            rectTransform = timerCircle.GetComponent<RectTransform>();
+            // // Get references
+            // circleTimer_texture = timerCircle.GetComponent<UnityEngine.UI.Image>();
+            // rectTransform = timerCircle.GetComponent<RectTransform>();
 
-            // Set initial opacity
-            UnityEngine.Color color = circleTimer_texture.color;
-            color.a = 255f;
-            circleTimer_texture.color = color;
-            if (timeTillShoot >= 0f)
-            {
-                timeTillShoot -= Time.deltaTime;
-                float relativeTime = timeTillShoot / totalShootTime;
-                circleTimer_texture.fillAmount = relativeTime;
-            }
+            // // Set initial opacity
+            // UnityEngine.Color color = circleTimer_texture.color;
+            // color.a = 255f;
+            // circleTimer_texture.color = color;
+            // if (timeTillShoot >= 0f)
+            // {
+            //     timeTillShoot -= Time.deltaTime;
+            //     float relativeTime = timeTillShoot / totalShootTime;
+            //     circleTimer_texture.fillAmount = relativeTime;
+            // }
                 // }
                 // Debug.Log("Undraw now");
         }
@@ -233,9 +241,12 @@ public class AimShoot : MonoBehaviour
         if (phaseManager.phaseTimer <= 0f)
         {
             currentPhase.onExit?.Invoke();
-            phaseManager.currentPhaseIndex++;
+            if (!(phaseManager.currentPhaseIndex == phaseManager.experimentPhases.Count - 1))
+            {
+                phaseManager.currentPhaseIndex++;   
+            }
             phaseManager.StartNextPhase();
-        }     
+        }
     }
 
     private void MouseMethod()
@@ -262,12 +273,27 @@ public class AimShoot : MonoBehaviour
 
     private void NewMethod()
     {
+        // Snap horizontal input
+        if (Mathf.Abs(horizontalInput) < leastInput)
+        {
+            horizontalInput = Mathf.Approximately(horizontalInput, 0f) ? previousHinputSign * leastInput : Mathf.Sign(horizontalInput) * leastInput;
+        }
+
+        if (Mathf.Abs(verticalInput) < leastInput)
+        {
+            verticalInput = Mathf.Approximately(verticalInput, 0f) ? previousVinputSign * leastInput : Mathf.Sign(verticalInput) * leastInput;
+        }
+
         // Compute input intensity for acceleration scaling
         float inputIntensity = Mathf.Clamp01(Mathf.Abs(horizontalInput) + Mathf.Abs(verticalInput));
 
         // Compute the target velocity based on input
-        AimVector = new Vector3(horizontalInput * 0.5f, verticalInput * 0.5f, 0.4f);
+        AimVector = new Vector3(horizontalInput * 0.5f, verticalInput * 0.5f, 2.4f);
         AimVector += new Vector3(InvisTargetCross.position.x, InvisTargetCross.position.y, 0f);
+
+        // Clamp to box
+        AimVector.x = Mathf.Clamp(AimVector.x, -1.8f, 1.8f);
+        AimVector.y = Mathf.Clamp(AimVector.y, -0.8f, 2.8f);
 
         // Adjust invisible crosshair movement based on input intensity
         float invisAcceleration = Mathf.Lerp(0f, 7f, inputIntensity);
@@ -345,6 +371,20 @@ public class AimShoot : MonoBehaviour
         // Debug.Log($"Generated Invisible Vector: {invisibleVector}, Target Vector: {targetVector}");
     }
 
+    void GenerateRandomInputVector(bool initial)
+    {
+        if (initial)
+        {
+            // Generate a random angle
+            angle = random.NextDouble() * Math.PI * 2; // Random angle in radians (0 to 2π)
+        }
+
+        // Convert to a normalized vector
+        Vector3 randomVector = new Vector3((float)Math.Cos(angle), (float)Math.Sin(angle), 0f) * 0.105f;
+        horizontalInput = randomVector.x;
+        verticalInput = randomVector.y;
+    }
+
     void Shoot()
     {
         OneDart = false;
@@ -373,10 +413,10 @@ public class AimShoot : MonoBehaviour
         dataOutputAndConfig.arrowIsNull = false;
 
         // Apply velocity to the cylinder
-        Rigidbody rb = cylinder.GetComponent<Rigidbody>();
-        if (rb != null)
+        currentDartRigidbody = cylinder.GetComponent<Rigidbody>();
+        if (currentDartRigidbody != null)
         {
-            rb.velocity = direction * shootSpeed;
+            currentDartRigidbody.velocity = direction * shootSpeed;
         }
         else
         {
@@ -570,22 +610,22 @@ public class AimShoot : MonoBehaviour
     void SetInitialCrosshairPosition()
     {
         Vector3 newPosition = CrossHair.transform.position;
-        newPosition.y -= 1f; // Down by default
-        newPosition.z = 0.4f;
+        // newPosition.y -= 1f; // Down by default
+        newPosition.z = 2.4f;
         CrossHair.transform.position = newPosition;
         InvisTargetCross.transform.position = newPosition;
     }
 
     private void InitTimerUI()
     {
-        circleTimer_texture = timerCircle.GetComponent<UnityEngine.UI.Image>();
-        rectTransform = timerCircle.GetComponent<RectTransform>();
+        // circleTimer_texture = timerCircle.GetComponent<UnityEngine.UI.Image>();
+        // rectTransform = timerCircle.GetComponent<RectTransform>();
 
-        UnityEngine.Color color = circleTimer_texture.color;
-        color.a = initialOpacity;
-        circleTimer_texture.color = color;
+        // UnityEngine.Color color = circleTimer_texture.color;
+        // color.a = initialOpacity;
+        // circleTimer_texture.color = color;
 
-        rectTransform.localScale = new Vector3(0.012f, 0.012f, 1f);
+        // rectTransform.localScale = new Vector3(0.012f, 0.012f, 1f);
     }
 
     void SetupLineRenderer()
@@ -633,21 +673,43 @@ public class AimShoot : MonoBehaviour
                 break;
 
             case "Ready":
+                if (conditionIndex % 2 == 0 && !eyeOscillating)
+                {
+                    StartQuietEye(true);
+                    eyeOscillating = true;
+                }
                 SetCrosshairVisible(true);
                 lastInputTime = Time.time;
                 break;
 
             case "Aim":
                 lastInputTime = Time.time;
-                // PreProcessInputData();
-                ProcessMouseInput();
+                if (generateRandomVec)
+                {
+                    GenerateRandomInputVector(initAngle);
+                    initAngle = false;
+                    StartCoroutine(DisableRandomVectorAfterFixedUpdates(50));
+                }
+                else
+                {
+                    PreProcessInputData();
+                }
+                // ProcessMouseInput();
 
-                MouseMethod();
+                // MouseMethod();
 
-                // NewMethod();
+                NewMethod();
 
                 // OldMethod();
-
+                
+                if (!Mathf.Approximately(Mathf.Sign(previousHinput), 0f))
+                {
+                    previousHinputSign = Mathf.Sign(previousHinput);
+                }
+                if (!Mathf.Approximately(Mathf.Sign(previousVinput), 0f))
+                {
+                    previousVinputSign = Mathf.Sign(previousVinput);
+                }
 
                 previousHinput = horizontalInput;
                 previousVinput = verticalInput;
@@ -670,15 +732,24 @@ public class AimShoot : MonoBehaviour
 
                 isAiming = true;
 
-                // PreProcessInputData();
-                ProcessMouseInput();
+                PreProcessInputData();
+                // ProcessMouseInput();
 
-                MouseMethod();
+                // MouseMethod();
 
-                // NewMethod();
+                NewMethod();
 
                 // OldMethod();
 
+
+                if (!Mathf.Approximately(Mathf.Sign(previousHinput), 0f))
+                {
+                    previousHinputSign = Mathf.Sign(previousHinput);
+                }
+                if (!Mathf.Approximately(Mathf.Sign(previousVinput), 0f))
+                {
+                    previousVinputSign = Mathf.Sign(previousVinput);
+                }
 
                 previousHinput = horizontalInput;
                 previousVinput = verticalInput;
@@ -698,13 +769,7 @@ public class AimShoot : MonoBehaviour
 
             case "Return":
                 SetCrosshairVisible(false);
-                if (serialPort != null && serialPort.IsOpen)
-                {
-                    serialPort.Close();
-                    Debug.Log("Serial port closed.");
-                }
-                
-                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+                StartCoroutine(RestartScene());
                 break;
         }
     }
@@ -730,7 +795,6 @@ public class AimShoot : MonoBehaviour
 
             case 2: // Near, Scoring, Noisy
                 EnableScoringTarget(true);
-                StartQuietEye(true);
                 break;
 
             // case 3: // Near, Blank, Quiet
@@ -753,7 +817,6 @@ public class AimShoot : MonoBehaviour
             case 4: // Far, Scoring, Noisy
                 ShrinkTarget();
                 EnableScoringTarget(true);
-                StartQuietEye(true);
                 break;
 
             // case 7: // Far, Blank, Quiet
@@ -798,7 +861,7 @@ public class AimShoot : MonoBehaviour
         float moveSpeed = -.005f;
         while (true)
         {
-            if (Math.Abs(fixationPoint.transform.position.x) >= .23f)
+            if (Math.Abs(fixationPoint.transform.position.x) >= .47f)
             {
                 moveSpeed = -moveSpeed;
             }
@@ -825,6 +888,31 @@ public class AimShoot : MonoBehaviour
         Material fixationMaterial = fixationMesh.material;
         fixationMaterial.mainTexture = greenDot;
     }
+
+    private IEnumerator DisableRandomVectorAfterFixedUpdates(int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            yield return new WaitForFixedUpdate();
+        }
+        generateRandomVec = false;
+    }
+
+    private IEnumerator RestartScene()
+    {
+        while(hasShot && currentDartRigidbody != null && currentDartRigidbody.velocity.magnitude > 0.1f) // has shot and dart (cylinder) moving
+        {
+            yield return new WaitForFixedUpdate();
+        }
+        if (serialPort != null && serialPort.IsOpen)
+        {
+            serialPort.Close();
+            Debug.Log("Serial port closed.");
+        }
+        
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
 
     public float GetAdjustedTime()
     {

@@ -4,6 +4,7 @@ using UnityEngine;
 public class EyelinkCoreInterop : MonoBehaviour
 {
     private const string DLL_NAME = "eyelink_core64.dll";
+    private const string GRAPHICS_DLL_NAME = "eyelink_core_graphics64.dll";
 
     [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern short open_eyelink_connection(short mode);
@@ -13,7 +14,7 @@ public class EyelinkCoreInterop : MonoBehaviour
     public static extern short eyelink_open();
     [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern short do_tracker_setup();
-    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport(GRAPHICS_DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern short open_data_file(string name);
     [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern short close_data_file();
@@ -27,6 +28,6 @@ public class EyelinkCoreInterop : MonoBehaviour
     public static extern void close_eyelink_connection();
     [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern short eyelink_is_connected();
-    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport(GRAPHICS_DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern short eyelink_cal_message(string msg);
 }

@@ -12,7 +12,7 @@ using Unity.VisualScripting;
 public class DataOutputAndConfig : MonoBehaviour
 {
     [SerializeField] private AimShoot aimShoot;
-    public EyeLinkManager eyeLinkManager;
+    // public EyeLinkManager eyeLinkManager;
     
     private int subjectNumber;
     private string subjectID = null;
@@ -22,6 +22,8 @@ public class DataOutputAndConfig : MonoBehaviour
     // Paths for file management
     private string csvPath;
     private string directoryPath;
+
+    private bool doOnce = true;
 
     // Switch for arrow coords
     public bool arrowIsNull = true;
@@ -43,22 +45,18 @@ public class DataOutputAndConfig : MonoBehaviour
             InitializeCSVHeader();
         }
 
-        if (aimShoot.dataRecordingEnabled && eyeLinkManager != null)
+        if (aimShoot.dataRecordingEnabled)
         {
             if (string.IsNullOrEmpty(subjectID))
             {
-                eyeLinkManager.dataFileName = $"{subjectNumber}{current_block}{current_trial-1}.edf";
+                // eyeLinkManager.dataFileName = $"{subjectNumber}{current_block}{current_trial-1}.edf";
             }
             else
             {
                 string truncatedID = subjectID.Length >= 2 ? subjectID.Substring(0, 2) : subjectID;
-                eyeLinkManager.dataFileName = $"{truncatedID}{current_block}{current_trial - 1}.edf";
+                // eyeLinkManager.dataFileName = $"{truncatedID}{current_block}{current_trial - 1}.edf";
             }
-            eyeLinkManager.InitEyeLink();
-            if (!eyeLinkManager.connectionActive)
-            {
-                eyeLinkManager.StartRecording();
-            }
+            // eyeLinkManager.InitEyeLink();
         }
         
         UpdateTrialData();
@@ -72,7 +70,7 @@ public class DataOutputAndConfig : MonoBehaviour
 
         if (!PlayerPrefs.HasKey("max_trials"))
         {
-            PlayerPrefs.SetInt("max_trials", 2);
+            PlayerPrefs.SetInt("max_trials", 4);
             PlayerPrefs.SetInt("max_blocks", 2);
             PlayerPrefs.SetString("subjectID", "");
             PlayerPrefs.SetInt("overwrite", 0);
@@ -113,11 +111,11 @@ public class DataOutputAndConfig : MonoBehaviour
                 aimShoot.serialPort.Close();
                 Debug.Log("Serial port closed.");
             }
-            if (eyeLinkManager != null)
-            {
-                eyeLinkManager.StopRecording();
-                EyelinkCoreInterop.close_eyelink_connection();
-            }
+            // if (eyeLinkManager != null)
+            // {
+            //     eyeLinkManager.StopRecording();
+            //     EyelinkCoreInterop.close_eyelink_connection();
+            // }
             #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
             #else
@@ -263,6 +261,15 @@ public class DataOutputAndConfig : MonoBehaviour
         if (!Directory.Exists(path))
         {
             Directory.CreateDirectory(path);
+        }
+    }
+
+    void Update()
+    {
+        if (doOnce)
+        {
+            // eyeLinkManager.StartRecording();
+            doOnce = false;
         }
     }
 }
