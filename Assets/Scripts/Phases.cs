@@ -32,7 +32,7 @@ public class Phases : MonoBehaviour
             // {
             //     Debug.Log("→ Go Cue: prepare to shoot (visual cue here)");
             // }),
-            new ExperimentPhase("Shoot", 0.75f, () =>
+            new ExperimentPhase("Shoot", 0.9f, () =>
             {
                 Debug.Log("→ Shoot: detect finger lift or input");
             }),

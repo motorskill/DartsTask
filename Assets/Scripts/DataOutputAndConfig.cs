@@ -12,7 +12,7 @@ using Unity.VisualScripting;
 public class DataOutputAndConfig : MonoBehaviour
 {
     [SerializeField] private AimShoot aimShoot;
-    // public EyeLinkManager eyeLinkManager;
+    public EyeLinkManager eyeLinkManager;
     
     private int subjectNumber;
     private string subjectID = null;
@@ -23,19 +23,22 @@ public class DataOutputAndConfig : MonoBehaviour
     private string csvPath;
     private string directoryPath;
 
+    // Onetime assignment bools
     private bool doOnce = true;
+    private bool firstDataBuffer = true;
 
     // Switch for arrow coords
     public bool arrowIsNull = true;
     // buffer data for positionally useless phases
-    private Dictionary<string, string> bufferPhases = new Dictionary<string, string>();
-    private readonly List<string> bufferPhaseOrder = new List<string> { "ITI", "Ready", "Return" };
+    private Dictionary<string, (string, string)> bufferPhases = new Dictionary<string, (string, string)>();
+    private readonly List<string> bufferPhaseOrder = new List<string> { "ITI", "Return" };
 
 
     void Start()
     {
         subjectNumber = PlayerPrefs.GetInt("subjectTracker", 1);
         subjectID = PlayerPrefs.GetString("subjectID", null);
+
         InitializeConfiguration();
         SetupTrialData();
         LoadSubjectData();
@@ -49,14 +52,14 @@ public class DataOutputAndConfig : MonoBehaviour
         {
             if (string.IsNullOrEmpty(subjectID))
             {
-                // eyeLinkManager.dataFileName = $"{subjectNumber}{current_block}{current_trial-1}.edf";
+                eyeLinkManager.dataFileName = $"{subjectNumber}{current_block}{current_trial-1}.edf";
             }
             else
             {
-                string truncatedID = subjectID.Length >= 2 ? subjectID.Substring(0, 2) : subjectID;
-                // eyeLinkManager.dataFileName = $"{truncatedID}{current_block}{current_trial - 1}.edf";
+                string truncatedID = subjectID.Length >= 4 ? subjectID.Substring(0, 4) : subjectID;
+                eyeLinkManager.dataFileName = $"{truncatedID}{current_block}{current_trial - 1}.edf";
             }
-            // eyeLinkManager.InitEyeLink();
+            eyeLinkManager.InitEyeLink();
         }
         
         UpdateTrialData();
@@ -111,11 +114,11 @@ public class DataOutputAndConfig : MonoBehaviour
                 aimShoot.serialPort.Close();
                 Debug.Log("Serial port closed.");
             }
-            // if (eyeLinkManager != null)
-            // {
-            //     eyeLinkManager.StopRecording();
-            //     EyelinkCoreInterop.close_eyelink_connection();
-            // }
+            if (eyeLinkManager != null)
+            {
+                eyeLinkManager.StopRecording();
+                EyelinkCoreInterop.close_eyelink_connection();
+            }
             #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
             #else
@@ -214,14 +217,19 @@ public class DataOutputAndConfig : MonoBehaviour
                                 $"0,0," +
                                 $"{radialError},{eventType},{cond_type},{tabletX},{tabletY},{forcePressure}\n";
 
-            bufferPhases[eventType] = bufferData;  // Replace or add the latest for this buffer type
+             if (!bufferPhases.ContainsKey(eventType))
+            {
+                // First time seeing this buffer phase
+                bufferPhases[eventType] = (bufferData, bufferData); // first and last are the same for now
+            }
+            else
+            {
+                var current = bufferPhases[eventType];
+                bufferPhases[eventType] = (current.Item1, bufferData); // update only the last
+            }
+
             return;
         }
-
-        // if (eyeLinkManager != null && eyeLinkManager.TryGetLatestGaze(out float gazeX, out float gazeY, out long t))
-        // {
-        //     Debug.Log($"Gaze sample at {t}: ({gazeX}, {gazeY})");
-        // }
 
         string data = $"{subjectID}," +
                       $"{current_trial - 1},{current_block},{timestamp}," +
@@ -232,7 +240,12 @@ public class DataOutputAndConfig : MonoBehaviour
         
         var orderedBufferData = bufferPhaseOrder
             .Where(bufferPhases.ContainsKey)
-            .Select(phase => bufferPhases[phase]);
+            .SelectMany(phase =>
+            {
+                var tuple = bufferPhases[phase];
+                return new[] { tuple.Item1, tuple.Item2 };
+            });
+
 
         if (orderedBufferData.Any())
         {
@@ -266,9 +279,11 @@ public class DataOutputAndConfig : MonoBehaviour
 
     void Update()
     {
-        if (doOnce)
+        if (doOnce && PlayerPrefs.GetInt("EyelinkRecording") == 0)
         {
-            // eyeLinkManager.StartRecording();
+            // Don't make new files
+            PlayerPrefs.SetInt("EyelinkRecording", 1);
+            eyeLinkManager.StartRecording();
             doOnce = false;
         }
     }

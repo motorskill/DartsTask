@@ -54,7 +54,7 @@ public class TestingUI : MonoBehaviour
         PlayerPrefs.SetInt("current_trial", 1);
 
         // Clear used trials
-        PlayerPrefs.SetString("trials_used", ""); 
+        PlayerPrefs.SetString("trials_used", "");
         PlayerPrefs.Save();
 
         csvPath = $"D:/QuietArchery_Stuff/QuietArcheryBackend/Data/Subject{PlayerPrefs.GetString("subjectID", "")}.block.{current_block}.csv";
@@ -65,6 +65,7 @@ public class TestingUI : MonoBehaviour
             // File.WriteAllText(csvPath, "Trial#,Block#,Timestamp,Ball X,Ball Z,Clubhead X position,Clubhead Y position,Clubhead Z position,Club X rotation,Club Z rotation,Clubhead Y rotation,Hole x position,Hole z position,Radial Error,Event,Difficulty,Force,TransXinput,TransYinput\n");
         }
 
+        // SceneManager.LoadScene("EyelinkCalibrationScene");
         SceneManager.LoadScene("ArcheryScene");
     }
     public void DeleteAllPrefsAndQuit()
@@ -95,8 +96,10 @@ public class TestingUI : MonoBehaviour
         PlayerPrefs.SetInt("current_block", blockCount);
         PlayerPrefs.SetInt("max_trials", trialCount);
         PlayerPrefs.SetInt("max_blocks", blockCount);
+        PlayerPrefs.SetInt("EyelinkRecording", 0);
         PlayerPrefs.Save();
 
+        // SceneManager.LoadScene("EyelinkCalibrationScene");
         SceneManager.LoadScene("ArcheryScene");
     }
 }

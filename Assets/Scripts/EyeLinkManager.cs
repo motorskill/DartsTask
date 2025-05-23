@@ -28,7 +28,7 @@ public class EyeLinkManager : MonoBehaviour
             //     Debug.LogError("Could not send command to EyeLink.");
             // }
 
-            EyelinkCoreInterop.do_tracker_setup();
+            // EyelinkCoreInterop.do_tracker_setup();
 
             // string calibrationResult = "";
             // EyelinkCoreInterop.eyelink_cal_message(calibrationResult);
