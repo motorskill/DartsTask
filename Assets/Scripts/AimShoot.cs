@@ -442,6 +442,7 @@ public class AimShoot : MonoBehaviour
         if (eyeLinkManager != null)
         {
             eyeLinkManager.StopRecording();
+            eyeLinkManager.FreeFSAMPLE();
         }
 
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
@@ -909,7 +910,10 @@ public class AimShoot : MonoBehaviour
             serialPort.Close();
             Debug.Log("Serial port closed.");
         }
-        
+        if (eyeLinkManager != null)
+        {
+            eyeLinkManager.FreeFSAMPLE();
+        }
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 

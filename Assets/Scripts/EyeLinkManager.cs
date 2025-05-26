@@ -1,4 +1,6 @@
 using System;
+using System.Runtime.InteropServices;
+
 // using UnityEditor.MemoryProfiler;
 using UnityEngine;
 
@@ -7,6 +9,9 @@ public class EyeLinkManager : MonoBehaviour
     public string dataFileName = "default.edf";
     public bool isRecording = false;
     public bool connectionActive = false;
+    // Live eye data
+    public FSAMPLE currentEyeTrackingData;
+    public IntPtr currentEyeTrackingPointer;
 
     public void InitEyeLink()
     {
@@ -79,6 +84,39 @@ public class EyeLinkManager : MonoBehaviour
             isRecording = false;
             Debug.Log("Recording stopped and connection closed.");
         }
+    }
+
+    public void AllocateFSAMPLEMemory()
+    {
+        currentEyeTrackingData= new FSAMPLE
+        {
+            px = new float[2],
+            py = new float[2],
+            hx = new float[2],
+            hy = new float[2],
+            pa = new float[2],
+            gx = new float[2],
+            gy = new float[2],
+            hdata = new short[8]
+        };
+
+        int size = Marshal.SizeOf(typeof(FSAMPLE));
+        currentEyeTrackingPointer = Marshal.AllocHGlobal(size);
+        Marshal.StructureToPtr(currentEyeTrackingData, currentEyeTrackingPointer, false);
+    }
+
+    public void PollEyelink()
+    {
+        short result = EyelinkCoreInterop.eyelink_newest_float_sample(currentEyeTrackingPointer);
+        if (result == 1)
+        {
+            currentEyeTrackingData = Marshal.PtrToStructure<FSAMPLE>(currentEyeTrackingPointer);
+        }
+    }
+
+    public void FreeFSAMPLE()
+    {
+        Marshal.FreeHGlobal(currentEyeTrackingPointer);
     }
 
     void OnApplicationQuit()

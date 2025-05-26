@@ -52,7 +52,7 @@ public class DataOutputAndConfig : MonoBehaviour
         {
             if (string.IsNullOrEmpty(subjectID))
             {
-                eyeLinkManager.dataFileName = $"{subjectNumber}{current_block}{current_trial-1}.edf";
+                eyeLinkManager.dataFileName = $"{subjectNumber}{current_block}{current_trial - 1}.edf";
             }
             else
             {
@@ -61,8 +61,9 @@ public class DataOutputAndConfig : MonoBehaviour
             }
             eyeLinkManager.InitEyeLink();
         }
-        
+
         UpdateTrialData();
+        eyeLinkManager.AllocateFSAMPLEMemory();
     }
 
     private void InitializeConfiguration()
@@ -135,6 +136,7 @@ public class DataOutputAndConfig : MonoBehaviour
         PlayerPrefs.SetInt("current_block", selectedBlock);
         Debug.Log($"Updated to Trial {current_trial}, Block {selectedBlock}");
     }
+
     public void LogDataEntry(string eventType)
     {
         string timestamp = aimShoot.GetAdjustedTime().ToString();
@@ -163,12 +165,12 @@ public class DataOutputAndConfig : MonoBehaviour
         4: Far, Noisy
         */
         string cond_type = "";
-        switch(condition)
+        switch (condition)
         {
             case 1:
                 cond_type = "Near+Quiet";
                 break;
-            
+
             case 2:
                 cond_type = "Near+Noisy";
                 break;
@@ -217,7 +219,7 @@ public class DataOutputAndConfig : MonoBehaviour
                                 $"0,0," +
                                 $"{radialError},{eventType},{cond_type},{tabletX},{tabletY},{forcePressure}\n";
 
-             if (!bufferPhases.ContainsKey(eventType))
+            if (!bufferPhases.ContainsKey(eventType))
             {
                 // First time seeing this buffer phase
                 bufferPhases[eventType] = (bufferData, bufferData); // first and last are the same for now
@@ -237,7 +239,7 @@ public class DataOutputAndConfig : MonoBehaviour
                       $"{crossHairLocal.x},{crossHairLocal.y}," +
                       $"0,0," + // Target is origin
                       $"{radialError},{eventType},{cond_type},{tabletX},{tabletY},{forcePressure}\n";
-        
+
         var orderedBufferData = bufferPhaseOrder
             .Where(bufferPhases.ContainsKey)
             .SelectMany(phase =>
@@ -252,7 +254,7 @@ public class DataOutputAndConfig : MonoBehaviour
             File.AppendAllText(csvPath, string.Join("", orderedBufferData));
             bufferPhases.Clear();
         }
-        
+
         File.AppendAllText(csvPath, data);
         Debug.Log("Data entry logged.");
     }
@@ -286,5 +288,11 @@ public class DataOutputAndConfig : MonoBehaviour
             eyeLinkManager.StartRecording();
             doOnce = false;
         }
+
+        // Definitely will have to write a bool here to ensure we don't do this if not connected to eyelink
+        eyeLinkManager.PollEyelink();
+        Debug.Log(
+            $"Gaze: ({eyeLinkManager.currentEyeTrackingData.gx[0]}, {eyeLinkManager.currentEyeTrackingData.gy[0]})"
+            );
     }
 }
