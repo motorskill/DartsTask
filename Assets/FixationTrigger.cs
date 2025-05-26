@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class FixationTrigger : MonoBehaviour
@@ -13,7 +14,7 @@ public class FixationTrigger : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!withinTrigger && Time.time - lastDingTS > timeBetweenDings && Time.time - timeLeftRegion > .1)
+        if (!withinTrigger && Time.time - lastDingTS > timeBetweenDings && Time.time - timeLeftRegion > timeBeforeDing) //Checks if gaze is out of fixation region, AND the sound delay has elapsed, AND the gaze has been out of the region for the required amount of time
         {
             outOfFixationDing.Play();
             lastDingTS = Time.time;
@@ -21,19 +22,20 @@ public class FixationTrigger : MonoBehaviour
         }
     }
 
-    private bool withinTrigger = true;
-    private float lastDingTS = 0;
-    private float timeLeftRegion = 0;
-    private float timeLastCheck = 0;
+    private bool withinTrigger = true; //Is the gaze currently within the fixation
+    private float lastDingTS = 0; //Timestamp of last sound effect
+    private float timeLeftRegion = 0; //Timestamp of last time gaze left fixation
+    private float timeLastCheck = 0; //Timestamp of last debugGazeStay message
     private AudioSource outOfFixationDing;
 
-    [SerializeField] float timeBetweenDings;
-    [SerializeField] string triggerTag;
-    [SerializeField] string debugGazeExit;
-    [SerializeField] string debugGazeEnter;
-    [SerializeField] string debugGazeOut;
-    [SerializeField] bool enableDebugGazeStay;
-    [SerializeField] string debugGazeStay;
+    [SerializeField] float timeBetweenDings; //Delay between each sound effect
+    [SerializeField] float timeBeforeDing; //Grace period before sound effect
+    [SerializeField] string triggerTag; //What tag should the other object have to count for this trigger
+    [SerializeField] string debugGazeExit; //Message on gaze exiting
+    [SerializeField] string debugGazeEnter; //Message on gaze entering
+    [SerializeField] string debugGazeOut; //Message on gaze remaining out of fixation
+    [SerializeField] bool enableDebugGazeStay; //Toggle message for gaze remaining within fixation
+    [SerializeField] string debugGazeStay; //Message on gaze remaining within fixation
 
     private void OnTriggerExit(Collider other)
     {
