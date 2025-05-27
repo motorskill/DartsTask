@@ -74,6 +74,8 @@ public class EyelinkCoreInterop : MonoBehaviour
     public static extern void set_cal_sounds(string ontarget, string ongood, string onbad);
     [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern short eyelink_newest_float_sample(IntPtr fsamplePtr);
+    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    public static extern short eyelink_eye_available();
 
     // Need to write SDL graphics calibration window in C++
     // [DllImport(GRAPHICS_DLL_NAME, CallingConvention = CallingConvention.Cdecl)]

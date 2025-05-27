@@ -13,7 +13,7 @@ public class DataOutputAndConfig : MonoBehaviour
 {
     [SerializeField] private AimShoot aimShoot;
     public EyeLinkManager eyeLinkManager;
-    
+
     private int subjectNumber;
     private string subjectID = null;
     public int current_trial;
@@ -59,11 +59,14 @@ public class DataOutputAndConfig : MonoBehaviour
                 string truncatedID = subjectID.Length >= 4 ? subjectID.Substring(0, 4) : subjectID;
                 eyeLinkManager.dataFileName = $"{truncatedID}{current_block}{current_trial - 1}.edf";
             }
-            eyeLinkManager.InitEyeLink();
+            if (PlayerPrefs.GetInt("EyelinkRecording") == 0)
+            {
+                eyeLinkManager.InitEyeLink();
+                eyeLinkManager.AllocateFSAMPLEMemory();
+            }
         }
 
         UpdateTrialData();
-        eyeLinkManager.AllocateFSAMPLEMemory();
     }
 
     private void InitializeConfiguration()
@@ -118,6 +121,7 @@ public class DataOutputAndConfig : MonoBehaviour
             if (eyeLinkManager != null)
             {
                 eyeLinkManager.StopRecording();
+                eyeLinkManager.FreeFSAMPLE();
                 EyelinkCoreInterop.close_eyelink_connection();
             }
             #if UNITY_EDITOR
@@ -263,9 +267,9 @@ public class DataOutputAndConfig : MonoBehaviour
     {
         // Define the header line for the CSV file
         string header = "SubjectID,Trial#,Block#,Timestamp,Arrow X,Arrow Y,Arrow Z,Crosshair X position,Crosshair Y position,Center-Target X position,Center-Target Y position,Radial Error,Event,Condition,tabletX,tabletY,Force\n";
-        
+
         // Check if it’s the first trial and block, then add the header if necessary
-        if (current_trial == 1   && !File.Exists(csvPath))
+        if (current_trial == 1 && !File.Exists(csvPath))
         {
             File.AppendAllText(csvPath, header);
             Debug.Log("CSV header initialized");
@@ -284,15 +288,20 @@ public class DataOutputAndConfig : MonoBehaviour
         if (doOnce && PlayerPrefs.GetInt("EyelinkRecording") == 0)
         {
             // Don't make new files
-            PlayerPrefs.SetInt("EyelinkRecording", 1);
             eyeLinkManager.StartRecording();
             doOnce = false;
         }
+    }
 
-        // Definitely will have to write a bool here to ensure we don't do this if not connected to eyelink
-        eyeLinkManager.PollEyelink();
-        Debug.Log(
-            $"Gaze: ({eyeLinkManager.currentEyeTrackingData.gx[0]}, {eyeLinkManager.currentEyeTrackingData.gy[0]})"
-            );
+    void FixedUpdate()
+    {
+        if (PlayerPrefs.GetInt("EyelinkRecording") == 1)
+        {
+            // Definitely will have to write a bool here to ensure we don't do this if not connected to eyelink
+            eyeLinkManager.PollEyelink();
+            Debug.Log(
+                $"Gaze: (gx={eyeLinkManager.currentEyeTrackingData.gx[eyeLinkManager.eye_used]}, gy={eyeLinkManager.currentEyeTrackingData.gy[eyeLinkManager.eye_used]}, pa={eyeLinkManager.currentEyeTrackingData.pa[eyeLinkManager.eye_used]})"
+                );
+        }
     }
 }
