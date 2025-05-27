@@ -291,10 +291,7 @@ public class DataOutputAndConfig : MonoBehaviour
             eyeLinkManager.StartRecording();
             doOnce = false;
         }
-    }
-
-    void FixedUpdate()
-    {
+        
         if (PlayerPrefs.GetInt("EyelinkRecording") == 1)
         {
             // Definitely will have to write a bool here to ensure we don't do this if not connected to eyelink
@@ -303,5 +300,10 @@ public class DataOutputAndConfig : MonoBehaviour
                 $"Gaze: (gx={eyeLinkManager.currentEyeTrackingData.gx[eyeLinkManager.eye_used]}, gy={eyeLinkManager.currentEyeTrackingData.gy[eyeLinkManager.eye_used]}, pa={eyeLinkManager.currentEyeTrackingData.pa[eyeLinkManager.eye_used]})"
                 );
         }
+    }
+
+    void FixedUpdate()
+    {
+        
     }
 }

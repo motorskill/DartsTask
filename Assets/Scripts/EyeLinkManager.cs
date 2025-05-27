@@ -114,24 +114,15 @@ public class EyeLinkManager : MonoBehaviour
     {
         eye_used = EyelinkCoreInterop.eyelink_eye_available();
         if (eye_used == 2) eye_used = 0;
-
-        short check = EyelinkCoreInterop.eyelink_newest_float_sample(IntPtr.Zero);
-        if (check > 0)
+        short result = EyelinkCoreInterop.eyelink_newest_float_sample(currentEyeTrackingPointer);
+        if (result > 0)
         {
-            short result = EyelinkCoreInterop.eyelink_newest_float_sample(currentEyeTrackingPointer);
-            if (result > 0)
-            {
-                currentEyeTrackingData = Marshal.PtrToStructure<FSAMPLE>(currentEyeTrackingPointer);
-                // DebugFSAMPLE();
-            }
-            else
-            {
-                Debug.LogWarning("eyelink_newest_float_sample returned no data despite check.");
-            }
+            currentEyeTrackingData = Marshal.PtrToStructure<FSAMPLE>(currentEyeTrackingPointer);
+            // DebugFSAMPLE();
         }
         else
         {
-            Debug.Log("No new sample available.");
+            Debug.LogWarning("eyelink_newest_float_sample returned no data despite check.");
         }
     }
 
