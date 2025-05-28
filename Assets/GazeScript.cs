@@ -8,6 +8,7 @@ public class GazeScript : MonoBehaviour
     void Start()
     {
         gazePosition.Set(0, 0, Z_OFFSET); //Default position centered on camera
+        EyeLinkManager.GetScreenResXY(out screenXMax, out screenYMax);
         //Get screen X and Y max from something
     }
 
@@ -24,8 +25,8 @@ public class GazeScript : MonoBehaviour
     private const float MIN_Y = -2.88675F; //Minimum Y relative to camera before exiting view on the focal plane
     private const int Z_OFFSET = 5; //Z offset relative to camera to remain within focal plane
 
-    private float screenXMax = 1919; //These are probably correct, I would just prefer to get this dynamically
-    private float screenYMax = 1079;
+    private int screenXMax = 1919; //These are probably correct, I would just prefer to get this dynamically
+    private int screenYMax = 1079;
 
     private Vector3 gazePosition = new(); //Position of gaze relative to camera
 

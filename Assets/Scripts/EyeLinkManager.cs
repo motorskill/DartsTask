@@ -175,5 +175,15 @@ public class EyeLinkManager : MonoBehaviour
         ");
     }
 
-
+    public void GetScreenResXY(out int screenX, out int screenY)
+    {
+        screenX = 0;
+        screenY = 0;
+        short result = EyelinkCoreInterop.get_display_information(screenX, screenY, 0);
+        Debug.Log("Result: " + result);
+        if (result < 1)
+        {
+            //throw new Exception("Failed to find screen height and width.");
+        }
+    }
 }
