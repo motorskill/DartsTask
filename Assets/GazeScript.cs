@@ -8,7 +8,8 @@ public class GazeScript : MonoBehaviour
     void Start()
     {
         gazePosition.Set(0, 0, Z_OFFSET); //Default position centered on camera
-        focalRect = GetScreenRectFromGameObject(focalPlane); //Creates a rectangle out of the focal plane object
+        
+        //focalRect = GetScreenRectFromGameObject(focalPlane); //Creates a rectangle out of the focal plane object
     }
 
     // Update is called once per frame
