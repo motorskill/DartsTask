@@ -131,10 +131,14 @@ public class AimShoot : MonoBehaviour
     public int conditionIndex;
     public Transform arrowCoords;
     private ExperimentPhase currentPhase;
-    
+
+    [SerializeField] Scoring scoringManager;
+
+
     // Start is called before the first frame update
     void Start()
     {
+        
         // Initialize the serial port
         serialPort = new SerialPort(portName, baudRate);
         serialPort.Parity = Parity.None;
@@ -423,7 +427,9 @@ public class AimShoot : MonoBehaviour
             Debug.LogError("No Rigidbody attached to the cylinder prefab!");
         }
         hasShot = true;
+
         // Start coroutine to reset OneDart after destruction
+        // change this back to 5f
         StartCoroutine(ResetOneDart(cylinder, 5f));
     }
 
@@ -692,13 +698,13 @@ public class AimShoot : MonoBehaviour
                 }
                 else
                 {
-                    PreProcessInputData();
+                    //PreProcessInputData();
+                    ProcessMouseInput();
                 }
-                // ProcessMouseInput();
 
-                // MouseMethod();
+                MouseMethod();
 
-                NewMethod();
+                //NewMethod();
 
                 // OldMethod();
                 
@@ -732,12 +738,12 @@ public class AimShoot : MonoBehaviour
 
                 isAiming = true;
 
-                PreProcessInputData();
-                // ProcessMouseInput();
+                //PreProcessInputData();
+                ProcessMouseInput();
 
-                // MouseMethod();
+                MouseMethod();
 
-                NewMethod();
+                //NewMethod();
 
                 // OldMethod();
 
@@ -789,11 +795,17 @@ public class AimShoot : MonoBehaviour
         {
             // --- NEAR Conditions (No Z Offset) ---
             case 1: // Near, Scoring, Quiet
+                // in Scoring.cs, score target as normal, near target
+                scoringManager.targetNear = true;
+
                 EnableScoringTarget(true);
                 StartQuietEye(false);
                 break;
 
             case 2: // Near, Scoring, Noisy
+                // in Scoring.cs, score target as normal, near target
+                scoringManager.targetNear = true;
+
                 EnableScoringTarget(true);
                 break;
 
@@ -835,6 +847,8 @@ public class AimShoot : MonoBehaviour
 
     void ShrinkTarget()
     {
+        // in Scoring.cs, score the target as a shrunken target
+        scoringManager.targetNear = false;
         foreach (Transform child in baseOfTarget)
         {
             child.localScale *= 0.5f;
@@ -923,5 +937,7 @@ public class AimShoot : MonoBehaviour
     {
         timeOffset = Time.time; // Store the current time as the new "zero"
     }
+
+
 
 }

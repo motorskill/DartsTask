@@ -66,7 +66,7 @@ public class DataOutputAndConfig : MonoBehaviour
     {
 
         directoryPath = "D:/QuietArchery_Stuff/QuietArchery/Data";
-        EnsureDirectory(directoryPath);
+        //EnsureDirectory(directoryPath);
 
         if (!PlayerPrefs.HasKey("max_trials"))
         {

@@ -5,6 +5,8 @@ using UnityEngine;
 public class CollisionDart : MonoBehaviour
 {
     [SerializeField] Rigidbody rb;
+    // Scoring, do this better
+    [SerializeField] Scoring scoringManager;
 
     // Start is called before the first frame update
     void Start()
@@ -32,6 +34,7 @@ public class CollisionDart : MonoBehaviour
 
         // Log the collision for debugging
         Debug.Log("Dart collided with: " + collision.gameObject.name);
+        scoringManager.scoreShot(rb.transform);
     }
 
     // Alternatively, if using triggers
