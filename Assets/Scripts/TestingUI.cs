@@ -15,7 +15,7 @@ public class TestingUI : MonoBehaviour
 {
     public Button ReadyButton;
     public TMP_InputField SubjectID;
-    public TMP_InputField TrialField;
+    // public TMP_InputField TrialField;
     public TMP_InputField BlockField;
     // public TMP_InputField TagField;
     private string csvPath;
@@ -88,15 +88,16 @@ public class TestingUI : MonoBehaviour
     public void ReadyCheck()
     {
         string subjectID = SubjectID.text;
-        int trialCount = int.Parse(TrialField.text);
+        // int trialCount = int.Parse(TrialField.text);
         int blockCount = int.Parse(BlockField.text);
 
         PlayerPrefs.SetString("subjectID", subjectID);
         PlayerPrefs.SetInt("current_trial", 1);
         PlayerPrefs.SetInt("current_block", blockCount);
-        PlayerPrefs.SetInt("max_trials", trialCount);
+        // PlayerPrefs.SetInt("max_trials", trialCount);
         PlayerPrefs.SetInt("max_blocks", blockCount);
         PlayerPrefs.SetInt("EyelinkRecording", 0);
+        PlayerPrefs.SetString("SubjectConfigTextFile", $"{subjectID}_run{blockCount}.txt");
         PlayerPrefs.Save();
 
         // SceneManager.LoadScene("EyelinkCalibrationScene");

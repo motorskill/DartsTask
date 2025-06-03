@@ -54,6 +54,7 @@ public class FixationTrigger : MonoBehaviour
         if (other.CompareTag(triggerTag))
         {
             withinTrigger = true;
+            lastDingTS = 0;
             Debug.Log(debugGazeEnter);
         }
     }

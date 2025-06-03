@@ -6,7 +6,12 @@ public class Phases : MonoBehaviour
 {
     public List<ExperimentPhase> experimentPhases;
     public int currentPhaseIndex = 0;
+    public int conditionNum = 0;
+    public string conditionName = "";
     public float phaseTimer = 0f;
+    public float ITI_time;
+    public float Ready_time;
+    public float Aim_time;
     public bool phaseRunning = false;
 
     // Primary physics script
@@ -16,15 +21,15 @@ public class Phases : MonoBehaviour
     {
         experimentPhases = new List<ExperimentPhase>
         {
-            new ExperimentPhase("ITI", UnityEngine.Random.Range(4f, 8f), () =>
+            new ExperimentPhase("ITI", ITI_time, () =>
             {
                 Debug.Log("→ ITI: show fixation, disable input");
             }),
-            new ExperimentPhase("Ready", UnityEngine.Random.Range(2f, 8f), () =>
+            new ExperimentPhase("Ready", Ready_time, () =>
             {
                 Debug.Log("→ Ready: show crosshair, no movement");
             }),
-            new ExperimentPhase("Aim", UnityEngine.Random.Range(4f, 8f), () =>
+            new ExperimentPhase("Aim", Aim_time, () =>
             {
                 Debug.Log("→ Aim: allow aiming");
             }),
@@ -40,9 +45,13 @@ public class Phases : MonoBehaviour
             // {
             //     Debug.Log("→ Feedback: show feedback cue");
             // }),
-            new ExperimentPhase("Return", 2f, () =>
+            new ExperimentPhase("Return", 30f, () =>
             {
                 Debug.Log("→ Return: move back to start");
+            }),
+            new ExperimentPhase("End", 2f, () =>
+            {
+                Debug.Log("→ End: end trial");
             })
         };
 

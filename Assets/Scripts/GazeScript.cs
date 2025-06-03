@@ -24,8 +24,8 @@ public class GazeScript : MonoBehaviour
     private const float MIN_Y = -2.88675F; //Minimum Y relative to camera before exiting view on the focal plane
     private const int Z_OFFSET = 5; //Z offset relative to camera to remain within focal plane
 
-    private float screenXMax = 1919; //These are probably correct, I would just prefer to get this dynamically
-    private float screenYMax = 1079;
+    private float screenXMax = 1920; //These are probably correct, I would just prefer to get this dynamically
+    private float screenYMax = 1080;
 
     private Vector3 gazePosition = new(); //Position of gaze relative to camera
 
@@ -37,11 +37,14 @@ public class GazeScript : MonoBehaviour
     {
         float fullX = (MIN_X * -1) + MAX_X; //Adjust to 0 - (MAX * 2) scale
         fullX = fullX * screenPctX; //Adjust based on screen percentage
-        fullX -= MIN_X; //Return to MIN - MAX scale
+        fullX += MIN_X; //Return to MIN - MAX scale
 
-        float fullY = (MIN_Y * -1) - MAX_Y; //Adjust to 0 - MAX scale
+        float fullY = (MIN_Y * -1) + MAX_Y; //Adjust to 0 - MAX scale
         fullY = fullY * screenPctY; //Adjust based on screen percentage
-        fullY -= MIN_Y; //Return to MIN - MAX scale
+        fullY += MIN_Y; //Return to MIN - MAX scale
+        fullY *= -1; //Inverts Y coords
+
+        Debug.Log("Gaze X coord: " + fullX + " | Gaze Y coord: " + fullY);
 
         gazePosition.Set(fullX, fullY, Z_OFFSET); //Set new position
     }
@@ -54,6 +57,8 @@ public class GazeScript : MonoBehaviour
 
             float pctX = eyeData.gx[0] / screenXMax; //Sets value to percentage of screen width
             float pctY = eyeData.gy[0] / screenYMax; //Sets value to percentage of screen height
+
+            Debug.Log("Gaze X pct: " + pctX + "% | Gaze Y: " + pctY + "%");
 
             GetGazePosition(pctX, pctY);
         }

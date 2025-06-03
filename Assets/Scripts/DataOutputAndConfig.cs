@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -22,6 +23,7 @@ public class DataOutputAndConfig : MonoBehaviour
     // Paths for file management
     private string csvPath;
     private string directoryPath;
+    private string SubjectConfigTextFile;
 
     // Onetime assignment bools
     private bool doOnce = true;
@@ -32,15 +34,20 @@ public class DataOutputAndConfig : MonoBehaviour
     // buffer data for positionally useless phases
     private Dictionary<string, (string, string)> bufferPhases = new Dictionary<string, (string, string)>();
     private readonly List<string> bufferPhaseOrder = new List<string> { "ITI", "Return" };
+    public Phases phaseManager;
+    [SerializeField] Transform baseOfTarget;
 
 
     void Start()
     {
         subjectNumber = PlayerPrefs.GetInt("subjectTracker", 1);
         subjectID = PlayerPrefs.GetString("subjectID", null);
+        SubjectConfigTextFile = PlayerPrefs.GetString("SubjectConfigTextFile");
 
         InitializeConfiguration();
         SetupTrialData();
+        // Read in trial and filename to find row for condition and timing
+        FindCurrentTrialInfo(SubjectConfigTextFile);
         LoadSubjectData();
 
         if (aimShoot.dataRecordingEnabled)
@@ -52,12 +59,12 @@ public class DataOutputAndConfig : MonoBehaviour
         {
             if (string.IsNullOrEmpty(subjectID))
             {
-                eyeLinkManager.dataFileName = $"{subjectNumber}{current_block}{current_trial - 1}.edf";
+                eyeLinkManager.dataFileName = $"{subjectNumber}{current_block}{current_trial}.edf";
             }
             else
             {
-                string truncatedID = subjectID.Length >= 4 ? subjectID.Substring(0, 4) : subjectID;
-                eyeLinkManager.dataFileName = $"{truncatedID}{current_block}{current_trial - 1}.edf";
+                string truncatedID = subjectID.Length >= 6 ? subjectID.Substring(0, 6) : subjectID;
+                eyeLinkManager.dataFileName = $"{truncatedID}{current_block}{current_trial}.edf";
             }
             if (PlayerPrefs.GetInt("EyelinkRecording") == 0)
             {
@@ -107,7 +114,7 @@ public class DataOutputAndConfig : MonoBehaviour
 
     private void UpdateTrialData()
     {
-        int maxTrials = PlayerPrefs.GetInt("max_trials");
+        int maxTrials = 28;
         int selectedBlock = PlayerPrefs.GetInt("max_blocks");
 
         if (current_trial > maxTrials)
@@ -139,6 +146,65 @@ public class DataOutputAndConfig : MonoBehaviour
         PlayerPrefs.SetInt("current_trial", current_trial);
         PlayerPrefs.SetInt("current_block", selectedBlock);
         Debug.Log($"Updated to Trial {current_trial}, Block {selectedBlock}");
+    }
+
+    private void FindCurrentTrialInfo(string filename)
+    {
+        string path = "D:/QuietArchery_Stuff/QuietArchery/ConditionTXTArchery/" + filename;
+        if (!File.Exists(path))
+        {
+            Debug.LogError("Config file needed to proceed with block");
+            return;
+        }
+
+        try
+        {
+            using (StreamReader reader = new StreamReader(path))
+            {
+                string headerLine = reader.ReadLine();
+                if (headerLine == null)
+                {
+                    Debug.LogError("Config file is empty");
+                    return;
+                }
+
+                string[] headers = headerLine.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                int trialIndex = Array.IndexOf(headers, "trial");
+                int itiIndex = Array.IndexOf(headers, "iti");
+                int readyIndex = Array.IndexOf(headers, "ready");
+                int aimIndex = Array.IndexOf(headers, "aim");
+                int conditionNumIndex = Array.IndexOf(headers, "condition_num");
+                int conditionTextIndex = Array.IndexOf(headers, "condition_text");
+
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    string[] tokens = line.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (tokens.Length < headers.Length)
+                        continue;
+
+                    if (int.TryParse(tokens[trialIndex], out int trialNum) && trialNum == current_trial)
+                    {
+                        phaseManager.ITI_time = float.Parse(tokens[itiIndex]);
+                        phaseManager.Ready_time = float.Parse(tokens[readyIndex]);
+                        phaseManager.Aim_time = float.Parse(tokens[aimIndex]);
+                        phaseManager.conditionNum = int.Parse(tokens[conditionNumIndex]);
+                        phaseManager.conditionName = tokens[conditionTextIndex];
+                        ApplyCondition(int.Parse(tokens[conditionNumIndex]));
+                        aimShoot.conditionIndex = int.Parse(tokens[conditionNumIndex]);
+
+                        Debug.Log($"Trial {trialNum}: ITI={phaseManager.ITI_time}, Ready={phaseManager.Ready_time}, Aim={phaseManager.Aim_time}, CondNum={phaseManager.conditionNum}, CondText={phaseManager.conditionName}");
+                        break;
+                    }
+                }
+            }
+
+            phaseManager.CreatePhases();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error reading trial info: {ex.Message}");
+        }
     }
 
     public void LogDataEntry(string eventType)
@@ -185,6 +251,18 @@ public class DataOutputAndConfig : MonoBehaviour
 
             case 4:
                 cond_type = "Far+Noisy";
+                break;
+            case 5:
+                cond_type = "Near+Quiet+Distract";
+                break;
+            case 6:
+                cond_type = "Near+Noisy+Distract";
+                break;
+            case 7:
+                cond_type = "Far+Quiet+Distract";
+                break;
+            case 8:
+                cond_type = "Far+Noisy+Distract";
                 break;
         }
 
@@ -291,19 +369,68 @@ public class DataOutputAndConfig : MonoBehaviour
             eyeLinkManager.StartRecording();
             doOnce = false;
         }
-        
+
         if (PlayerPrefs.GetInt("EyelinkRecording") == 1)
         {
             // Definitely will have to write a bool here to ensure we don't do this if not connected to eyelink
             eyeLinkManager.PollEyelink();
-            Debug.Log(
-                $"Gaze: (gx={eyeLinkManager.currentEyeTrackingData.gx[eyeLinkManager.eye_used]}, gy={eyeLinkManager.currentEyeTrackingData.gy[eyeLinkManager.eye_used]}, pa={eyeLinkManager.currentEyeTrackingData.pa[eyeLinkManager.eye_used]})"
-                );
+            // Debug.Log(
+            //     $"Gaze: (gx={eyeLinkManager.currentEyeTrackingData.gx[eyeLinkManager.eye_used]}, gy={eyeLinkManager.currentEyeTrackingData.gy[eyeLinkManager.eye_used]}, pa={eyeLinkManager.currentEyeTrackingData.pa[eyeLinkManager.eye_used]})"
+            //     );
         }
     }
 
     void FixedUpdate()
     {
-        
+
+    }
+    void ApplyCondition(int condition_num)
+    {
+        Debug.Log($"Applying Condition {condition_num}");
+
+        // Reset all variables first (e.g. Quiet Eye back to 0, etc.)
+        StopAllCoroutines(); // Stop QE shifting if active
+
+        switch (condition_num)
+        {
+            case 1: // Near, no distraction, Quiet
+                // EnableScoringTarget(true);
+                break;
+
+            case 2: // Near, no distraction, Noisy
+                // EnableScoringTarget(true);
+                break;
+
+            case 3: // Far, no distraction, Quiet
+                ShrinkTarget();
+                // EnableScoringTarget(true);
+                break;
+
+            case 4: // Far, no distraction, Noisy
+                ShrinkTarget();
+                // EnableScoringTarget(true);
+                break;
+
+            case 5: // Near, Distraction, Quiet
+                break;
+
+            case 6: // Near, Distraction, Noisy
+                break;
+
+            case 7: // Far, Distraction, Quiet
+                ShrinkTarget();
+                break;
+
+            case 8: // Far, Distraction, Noisy
+                ShrinkTarget();
+                break;
+        }
+    }
+    void ShrinkTarget()
+    {
+        foreach (Transform child in baseOfTarget)
+        {
+            child.localScale *= 0.5f;
+        }
     }
 }
