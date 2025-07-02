@@ -12,7 +12,8 @@ using System.Drawing;
 using UnityEngine.UI; // Required for UI
 using DG.Tweening;
 using System.Runtime.Remoting.Messaging;
-using UnityEngine.XR; // Import DOTween namespac
+using UnityEngine.XR;
+using System.Configuration; // Import DOTween namespac
 
 public class AimShoot : MonoBehaviour
 {
@@ -25,7 +26,6 @@ public class AimShoot : MonoBehaviour
     [SerializeField] public Transform InvisTargetCross;
     [SerializeField] Rigidbody InvisTargetRigid;
     [SerializeField] DataOutputAndConfig dataOutputAndConfig;
-    public EyeLinkManager eyeLinkManager;
     Header Conditions;
     [SerializeField] public GameObject featureTarget;
     [SerializeField] Transform fixationPoint;
@@ -83,6 +83,7 @@ public class AimShoot : MonoBehaviour
     public string portName = "COM4"; // Replace with your port name
     [SerializeField]
     public int baudRate = 115200;
+    private bool DiscardOldInput = true;
 
     // Timer bool
     public float timeTillShoot;
@@ -108,7 +109,7 @@ public class AimShoot : MonoBehaviour
     private float absoluteMouseY = 0f; // Persistent absolute Y posit
 
     // bools
-    public bool isAiming = false;
+    public bool isShooting = false;
     public bool hasShot = false;
 
     // Test vars
@@ -123,16 +124,32 @@ public class AimShoot : MonoBehaviour
     [SerializeField] Texture greenDot;
 
     // Data collection vars
-    private float timeOffset;
+    // private float timeOffset;
     public bool dataRecordingEnabled = false;
     public string[] parts;
     public int conditionIndex;
     public Transform arrowCoords;
     private ExperimentPhase currentPhase;
+    private bool pausePhasetimer = false;
 
     //Game object for return
     [SerializeField] GameObject tabletVis;
     public TabletVis visScript;
+
+    //Game object for distraction light
+    [SerializeField] GameObject distractionLight;
+    private bool lightFlicker = true;
+    // scene management load only once
+    private bool OnetimeReload = true;
+    // MRI pulse processing
+    public bool experimentStarted = false;
+    private int numApostrophesPreExp;
+    private bool setApostrophes = false;
+    //Subject feedback
+    public bool isAiming = false;
+    public List<float> MedialateralEyes;
+    [SerializeField] AudioSource outOfFixationDing;
+    private bool playOnce = true;
 
     // Start is called before the first frame update
     void Start()
@@ -159,51 +176,30 @@ public class AimShoot : MonoBehaviour
         InitTimerUI();
         SetupLineRenderer();
         // Cursor.visible = false;
-        if (trialIndex == 1)
-        {
-            ResetTime();
-        }
+        // if (trialIndex == 1)
+        // {
+        //     ResetTime();
+        // }
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (isAiming)
-        {
-            if (!fadeStarted)
-            {
-                fadeStarted = true;
-                // FadeInAndShrink(circleTimer_texture, rectTransform, preShootTime);
-            }
-            // if (bufferTime > 0f)
-            // {
-            //     bufferTime -= Time.deltaTime;
-            // }
-            // else
-            // {
-
-            // // Get references
-            // circleTimer_texture = timerCircle.GetComponent<UnityEngine.UI.Image>();
-            // rectTransform = timerCircle.GetComponent<RectTransform>();
-
-            // // Set initial opacity
-            // UnityEngine.Color color = circleTimer_texture.color;
-            // color.a = 255f;
-            // circleTimer_texture.color = color;
-            // if (timeTillShoot >= 0f)
-            // {
-            //     timeTillShoot -= Time.deltaTime;
-            //     float relativeTime = timeTillShoot / totalShootTime;
-            //     circleTimer_texture.fillAmount = relativeTime;
-            // }
-            // }
-            // Debug.Log("Undraw now");
-        }
-
+        if (!experimentStarted)
+            return;
         if (dataRecordingEnabled)
-            dataOutputAndConfig.LogDataEntry(currentPhase.name);
+        {
+            if (dataOutputAndConfig.current_trial == 2 && visScript.firstRunReturn && !visScript.returnComplete)
+            {
+                dataOutputAndConfig.LogDataEntry("Return");
+            }
+            else
+                dataOutputAndConfig.LogDataEntry(currentPhase.name);
+        }
     }
 
+    private float lastApostropheTime = 0f;
+    private float apostropheCooldown = 0.2f;
     void FixedUpdate()
     {
 
@@ -227,10 +223,48 @@ public class AimShoot : MonoBehaviour
         horizontalInput = (Input.GetAxis("Horizontal")) * 0.75f;
         verticalInput = (Input.GetAxis("Vertical")) * 0.75f;
 
+
+        //  if (dataOutputAndConfig.current_trial == 2 && !setApostrophes)
+        // {
+        //     numApostrophesPreExp = 20;
+        // }
+        // if (dataOutputAndConfig.current_trial != 2 && !setApostrophes)
+        // {
+        //     numApostrophesPreExp = 1;
+        // }
+        // setApostrophes = true;
+        
+
+        // if (!experimentStarted)
+        // {
+        //     // Wait for the user to press the "'" key
+        //     if (Input.GetKeyDown(KeyCode.Quote) && (Time.time - lastApostropheTime) > apostropheCooldown) // KeyCode.Quote corresponds to the "'" key
+        //     {
+        //         //int pulsesReceived = PlayerPrefs.GetInt("PulseCount");
+        //         //pulsesReceived += Input.GetKeyDown(KeyCode.Quote) ? 1 : 0;
+        //         lastApostropheTime = Time.time;
+        //         int pulsesReceived = PlayerPrefs.GetInt("PulseCount");
+        //         pulsesReceived += 1;
+        //         PlayerPrefs.SetInt("PulseCount", pulsesReceived);
+        //         Debug.Log($"Pulse received through apostrophe press {numApostrophesPreExp}/{pulsesReceived}");
+        //         numApostrophesPreExp -= 1;
+        //         if (numApostrophesPreExp == 19 && PlayerPrefs.GetInt("current_trial") == 2)
+        //         {
+        //             ResetTime();
+        //         }
+        //         if (numApostrophesPreExp <= 0)
+        //             {
+        //                 StartExperiment();
+        //             }
+        //     }
+        //     return; // Skip the rest of the update loop until the experiment starts
+        // }
+
         if (!dataOutputAndConfig.phaseManager.phaseRunning)
             return;
 
-        dataOutputAndConfig.phaseManager.phaseTimer -= Time.fixedDeltaTime;
+        if (!pausePhasetimer)
+            dataOutputAndConfig.phaseManager.phaseTimer -= Time.fixedDeltaTime;
 
         currentPhase = dataOutputAndConfig.phaseManager.experimentPhases[dataOutputAndConfig.phaseManager.currentPhaseIndex];
 
@@ -500,7 +534,7 @@ public class AimShoot : MonoBehaviour
 
                     lastInputTime = Time.time;
 
-                    if (!firstInput)
+                    if (!firstInput && isShooting)
                     {
                         firstInput = true;
                     }
@@ -508,7 +542,7 @@ public class AimShoot : MonoBehaviour
                 else if (Time.time - lastInputTime > inputTimeout) // add another variable for shooting during shooting phase not aim phase
                 {
                     Debug.Log("input not caught");
-                    if (nullShoot && OneDart)
+                    if (nullShoot && OneDart && firstInput)
                     {
                         Shoot();
                     }
@@ -664,16 +698,28 @@ public class AimShoot : MonoBehaviour
     }
 
 
+    private bool returnStarted = false;
     private void HandleCurrentPhase(ExperimentPhase phase)
     {
         switch (phase.name)
         {
             case "ITI":
+                if ((dataOutputAndConfig.current_trial - 1) == 1) // for first trial only
+                {
+                    releaseSerialPort();
+                    //visScript.ResetValues();
+                    EnableTabletVis(true);
+                    StartCoroutine(WaitForReturnHome());
+                }
                 SetCrosshairVisible(false);
                 lastInputTime = Time.time;
                 break;
 
             case "Ready":
+
+                // for first trial return case
+                visScript.ResetValues();
+
                 if (conditionIndex % 2 == 0 && !eyeOscillating)
                 {
                     StartQuietEye(true);
@@ -684,7 +730,18 @@ public class AimShoot : MonoBehaviour
                 break;
 
             case "Aim":
+                isAiming = true;
+                if (DiscardOldInput && serialPort.IsOpen)
+                {
+                    serialPort.DiscardInBuffer();
+                    Debug.Log("Discarded buffer for input");
+                    DiscardOldInput = false;
+                }
                 lastInputTime = Time.time;
+                if (conditionIndex > 4)
+                {
+                    StartDistract(true);
+                }
                 if (generateRandomVec)
                 {
                     GenerateRandomInputVector(initAngle);
@@ -724,14 +781,14 @@ public class AimShoot : MonoBehaviour
             //     break;
 
             case "Shoot":
+                isAiming = false;
+                isShooting = true;
                 if (!assignTimetillShoot)
                 {
                     timeTillShoot = phase.duration;
                     totalShootTime = phase.duration;
                     assignTimetillShoot = true;
                 }
-
-                isAiming = true;
 
                 PreProcessInputData();
                 // ProcessMouseInput();
@@ -769,11 +826,31 @@ public class AimShoot : MonoBehaviour
             //     break;
 
             case "Return":
+                lightFlicker = false;
+                distractionLight.SetActive(false);
+                
+                if (!returnStarted)
+                {
+                    returnStarted = true;
+                    visScript.ResetValues();
+                    EnableTabletVis(true);
+                }
                 releaseSerialPort();
                 SetCrosshairVisible(false);
-                EnableTabletVis();
+
                 // Start polling for returnComplete
                 StartCoroutine(WaitForReturnHome());
+
+                // if conditions
+                Debug.Log("Medialateral List: " + string.Join(", ", MedialateralEyes));
+                float stdXeye;
+                // GetStd(MedialateralEyes, out stdXeye);
+                // if (playOnce && (((conditionIndex % 2 == 0) && stdXeye < 30) || (!(conditionIndex % 2 == 0) && stdXeye > 20)))
+                // {
+                //     outOfFixationDing.Play();
+                //     playOnce = false;
+                // }
+
                 break;
 
             case "End":
@@ -781,11 +858,43 @@ public class AimShoot : MonoBehaviour
                 break;
         }
     }
+
+    public static void GetStd(List<float> data, out float stdDev)
+    {
+        float mean = data.Average();
+        stdDev = 0f;
+
+        if (data == null || data.Count == 0)
+            return;
+
+        float sumSqDif = 0f;
+        int n = data.Count;
+
+        for (int i = 0; i < n; i++)
+        {
+            float dif = data[i] - mean;
+            sumSqDif += dif * dif;
+        }
+
+        stdDev = Mathf.Sqrt(sumSqDif / n);
+        Debug.Log("standard deviation of eyes x: " + stdDev);
+    }
+
     void StartQuietEye(bool enable)
     {
         if (enable)
         {
             StartCoroutine(QuietEyeOscillate());
+        }
+    }
+
+    private bool isFlickering = false; // added by nk
+    void StartDistract(bool enable)
+    {
+        if (enable && !isFlickering) // nk added &&! isFlickering to if statement
+        {
+            StartCoroutine(flickerLight());
+            isFlickering = true;
         }
     }
 
@@ -846,36 +955,46 @@ public class AimShoot : MonoBehaviour
         // {
         //     eyeLinkManager.FreeFSAMPLE();
         // }
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        if (OnetimeReload)
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            OnetimeReload = false;
+        }
     }
 
 
     public float GetAdjustedTime()
     {
-        return Time.time - timeOffset; // Use this instead of Time.time
+        return Time.time - PlayerPrefs.GetFloat("timeOffset"); // Use this instead of Time.time
     }
 
     void ResetTime()
     {
-        timeOffset = Time.time; // Store the current time as the new "zero"
+        PlayerPrefs.SetFloat("timeOffset", Time.time); // Store the current time as the new "zero"
     }
 
-    private void EnableTabletVis()
+    private void EnableTabletVis(bool enable)
     {
-        tabletVis.SetActive(true);
+        tabletVis.SetActive(enable);
     }
 
     private IEnumerator WaitForReturnHome()
     {
         while (!visScript.returnComplete)
         {
+            pausePhasetimer = true;
             yield return null; // wait for next frame
         }
 
-        Debug.Log("Return complete. Proceeding to End phase.");
+        Debug.Log("Return complete. Unpausing phase timer.");
 
-        // Advance to next phase manually
-        dataOutputAndConfig.phaseManager.phaseTimer = 0f;
+        pausePhasetimer = false;
+        if (currentPhase.name == "Return")
+        {
+            // Advance to next phase manually after they successfully return home
+            dataOutputAndConfig.phaseManager.phaseTimer = 0f;
+        }
+        EnableTabletVis(false);
     }
     private void releaseSerialPort()
     {
@@ -900,6 +1019,37 @@ public class AimShoot : MonoBehaviour
             Debug.LogWarning("SerialPort was null when trying to release.");
         }
     }
-    private void flickerLight()
-    {}
+
+    public float flickerHz = 1f; // added by nk
+    IEnumerator flickerLight()
+    {
+
+        float interval = 1f / (flickerHz * 10f); // added by nk
+
+        while (lightFlicker)
+        {
+            distractionLight.SetActive(!distractionLight.activeSelf);
+            yield return new WaitForSecondsRealtime(interval); // flicker every 0.1 seconds. change back to 0.5f if nk addition fails
+        }
+    }
+
+    public class LightBlinkTest : MonoBehaviour
+    {
+        public GameObject distractionLight; 
+    }
+    // void Start()
+    // {
+    //     if (lightFlicker)
+    //     {
+    //         StartCoroutine(flickerLight());
+    //     }
+    // }
+
+    private void StartExperiment()
+    {
+        experimentStarted = true;
+        Cursor.visible = false;
+        // reset clock every block
+        Debug.Log("Experiment started with the ' key press.");
+    }
 }

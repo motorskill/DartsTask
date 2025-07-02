@@ -16,7 +16,7 @@ public class FixationTrigger : MonoBehaviour
     {
         if (!withinTrigger && Time.time - lastDingTS > timeBetweenDings && Time.time - timeLeftRegion > timeBeforeDing) //Checks if gaze is out of fixation region, AND the sound delay has elapsed, AND the gaze has been out of the region for the required amount of time
         {
-            outOfFixationDing.Play();
+            // outOfFixationDing.Play();
             lastDingTS = Time.time;
             Debug.Log(debugGazeOut);
         }

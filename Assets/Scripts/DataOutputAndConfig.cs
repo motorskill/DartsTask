@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -33,7 +34,7 @@ public class DataOutputAndConfig : MonoBehaviour
     public bool arrowIsNull = true;
     // buffer data for positionally useless phases
     private Dictionary<string, (string, string)> bufferPhases = new Dictionary<string, (string, string)>();
-    private readonly List<string> bufferPhaseOrder = new List<string> { "ITI", "Return" };
+    private readonly List<string> bufferPhaseOrder = new List<string> {  "Return", "ITI" };
     public Phases phaseManager;
     [SerializeField] Transform baseOfTarget;
 
@@ -81,8 +82,10 @@ public class DataOutputAndConfig : MonoBehaviour
 
         directoryPath = "D:/QuietArchery_Stuff/QuietArchery/Data";
         EnsureDirectory(directoryPath);
+        if (current_trial == 1)
+            PlayerPrefs.SetInt("PulseCount", 20);
 
-        if (!PlayerPrefs.HasKey("max_trials"))
+        if (!PlayerPrefs.HasKey("max_blocks"))
         {
             PlayerPrefs.SetInt("max_trials", 4);
             PlayerPrefs.SetInt("max_blocks", 2);
@@ -211,6 +214,11 @@ public class DataOutputAndConfig : MonoBehaviour
     {
         string timestamp = aimShoot.GetAdjustedTime().ToString();
 
+        int pulsesReceived = PlayerPrefs.GetInt("PulseCount");
+        pulsesReceived += Input.GetKeyDown(KeyCode.Quote) ? 1 : 0;
+        PlayerPrefs.SetInt("PulseCount", pulsesReceived);
+        Debug.Log($"Key presses {pulsesReceived}");
+
         // Target center is defined by featureTarget.transform.position ... (0,0,0)
 
         Vector3 arrowLocal = Vector3.zero;
@@ -299,8 +307,20 @@ public class DataOutputAndConfig : MonoBehaviour
                                 $"{arrowLocal.x},{arrowLocal.y},{arrowLocal.z}," +
                                 $"{crossHairLocal.x},{crossHairLocal.y}," +
                                 $"0,0," +
-                                $"{radialError},{eventType},{cond_type},{tabletX},{tabletY},{forcePressure}\n";
-
+                                $"{radialError},{eventType},{cond_type},{tabletX},{tabletY},{forcePressure}";
+                                if (eyeLinkManager.currentEyeTrackingData.gx != null &&
+                                    eyeLinkManager.currentEyeTrackingData.gy != null &&
+                                    eyeLinkManager.eye_used >= 0 &&
+                                    eyeLinkManager.currentEyeTrackingData.gx.Length > eyeLinkManager.eye_used &&
+                                    eyeLinkManager.currentEyeTrackingData.gy.Length > eyeLinkManager.eye_used)
+                                {
+                                    bufferData += $",{eyeLinkManager.currentEyeTrackingData.gx[eyeLinkManager.eye_used]},{eyeLinkManager.currentEyeTrackingData.gy[eyeLinkManager.eye_used]}";
+                                }
+                                else
+                                {
+                                    bufferData += ",{},{}";
+                                }
+                                bufferData += $",{pulsesReceived}\n";
             if (!bufferPhases.ContainsKey(eventType))
             {
                 // First time seeing this buffer phase
@@ -320,7 +340,20 @@ public class DataOutputAndConfig : MonoBehaviour
                       $"{arrowLocal.x},{arrowLocal.y},{arrowLocal.z}," +
                       $"{crossHairLocal.x},{crossHairLocal.y}," +
                       $"0,0," + // Target is origin
-                      $"{radialError},{eventType},{cond_type},{tabletX},{tabletY},{forcePressure}\n";
+                      $"{radialError},{eventType},{cond_type},{tabletX},{tabletY},{forcePressure}";
+                        if (eyeLinkManager.currentEyeTrackingData.gx != null &&
+                            eyeLinkManager.currentEyeTrackingData.gy != null &&
+                            eyeLinkManager.eye_used >= 0 &&
+                            eyeLinkManager.currentEyeTrackingData.gx.Length > eyeLinkManager.eye_used &&
+                            eyeLinkManager.currentEyeTrackingData.gy.Length > eyeLinkManager.eye_used)
+                        {
+                            data += $",{eyeLinkManager.currentEyeTrackingData.gx[eyeLinkManager.eye_used]},{eyeLinkManager.currentEyeTrackingData.gy[eyeLinkManager.eye_used]}";
+                        }
+                        else
+                        {
+                            data += ",{},{}";
+                        }
+                        data += $",{pulsesReceived}\n";
 
         var orderedBufferData = bufferPhaseOrder
             .Where(bufferPhases.ContainsKey)
@@ -336,6 +369,7 @@ public class DataOutputAndConfig : MonoBehaviour
             File.AppendAllText(csvPath, string.Join("", orderedBufferData));
             bufferPhases.Clear();
         }
+        
 
         File.AppendAllText(csvPath, data);
         Debug.Log("Data entry logged.");
@@ -344,7 +378,7 @@ public class DataOutputAndConfig : MonoBehaviour
     private void InitializeCSVHeader()
     {
         // Define the header line for the CSV file
-        string header = "SubjectID,Trial#,Block#,Timestamp,Arrow X,Arrow Y,Arrow Z,Crosshair X position,Crosshair Y position,Center-Target X position,Center-Target Y position,Radial Error,Event,Condition,tabletX,tabletY,Force\n";
+        string header = "SubjectID,Trial#,Block#,Timestamp,Arrow X,Arrow Y,Arrow Z,Crosshair X position,Crosshair Y position,Center-Target X position,Center-Target Y position,Radial Error,Event,Condition,tabletX,tabletY,Force,EyeX,EyeY,PulseReceived\n";
 
         // Check if it’s the first trial and block, then add the header if necessary
         if (current_trial == 1 && !File.Exists(csvPath))
@@ -378,11 +412,22 @@ public class DataOutputAndConfig : MonoBehaviour
             //     $"Gaze: (gx={eyeLinkManager.currentEyeTrackingData.gx[eyeLinkManager.eye_used]}, gy={eyeLinkManager.currentEyeTrackingData.gy[eyeLinkManager.eye_used]}, pa={eyeLinkManager.currentEyeTrackingData.pa[eyeLinkManager.eye_used]})"
             //     );
         }
+        // eyeLinkManager.currentEyeTrackingData.gx[0] -> add to medialateraleyes list
+        if (aimShoot.isAiming)
+        {
+            try //Get rid of error messages with this one simple trick!
+            {
+                FSAMPLE eyeData = eyeLinkManager.currentEyeTrackingData; //Or something that gets the correct data
+
+                aimShoot.MedialateralEyes.Add(eyeData.gx[0]);
+            }
+            catch { }
+        }
     }
 
     void FixedUpdate()
     {
-
+        
     }
     void ApplyCondition(int condition_num)
     {

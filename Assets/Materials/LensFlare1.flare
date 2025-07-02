@@ -7,8 +7,8 @@ Flare:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: LensFlare1
-  m_FlareTexture: {fileID: 0}
-  m_TextureLayout: 0
+  m_FlareTexture: {fileID: 2800000, guid: 73622cf816a37124c8f0eb69c4a8c18e, type: 3}
+  m_TextureLayout: 2
   m_Elements:
   - m_ImageIndex: 0
     m_Position: 0

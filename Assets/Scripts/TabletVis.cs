@@ -21,18 +21,19 @@ public class TabletVis : MonoBehaviour
     private const float UNITY_X_MIN = -5.132F; //Minimum X relative to camera before exiting view on the focal plane
     private const float UNITY_Y_MAX = 2.88675F; //Maximum Y relative to camera before exiting view on the focal plane
     private const float UNITY_Y_MIN = -2.88675F; //Minimum Y relative to camera before exiting view on the focal plane
-    private const float RAW_X_MIN = 0f;
+    private const float RAW_X_MIN = 60f;
     private const float RAW_X_MAX = 120.0f;
     private const float RAW_Y_MIN = 0f;
-    private const float RAW_Y_MAX = 100f;
+    private const float RAW_Y_MAX = 50f;
 
     // other object to serve as  "home"
     [SerializeField] GameObject Home;
     // Timer tracking
     private float overlapTimer = 0f;
     private bool isOverlapping = false;
-    private float requiredOverlapTime = 1f;  // seconds
+    private float requiredOverlapTime = 0.25f;  // seconds
     public bool returnComplete = false;
+    public bool firstRunReturn = true;
 
     // Start is called before the first frame update
     void Start()
@@ -84,6 +85,14 @@ public class TabletVis : MonoBehaviour
                 overlapTimer = 0f; // Reset timer if not continuously overlapping
             }
         }
+    }
+    public void ResetValues()
+    {
+        transform.localPosition = new Vector3(0f, -0.5f, 0f);
+        firstRunReturn = false;
+        returnComplete = false;
+        isOverlapping = false;
+        overlapTimer = 0f;
     }
 
     private void PreProcessInputData()
@@ -149,7 +158,7 @@ public class TabletVis : MonoBehaviour
                 float fullY = Mathf.Lerp(UNITY_Y_MIN, UNITY_Y_MAX, yNorm);
 
 
-                Debug.Log("Gaze X coord: " + fullX + " | Gaze Y coord: " + fullY);
+                // Debug.Log("Gaze X coord: " + fullX + " | Gaze Y coord: " + fullY);
 
                 transform.localPosition = new Vector3(fullX, fullY, 0f);
             }
