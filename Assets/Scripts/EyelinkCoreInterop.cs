@@ -3,6 +3,41 @@ using System;
 using Unity.VisualScripting;
 using UnityEngine;
 
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public struct FSAMPLE
+{
+    public uint time;
+    public short type;
+    public ushort flags;
+
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+    public float[] px;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+    public float[] py;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+    public float[] hx;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+    public float[] hy;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+    public float[] pa;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+    public float[] gx;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+    public float[] gy;
+
+    public float rx;
+    public float ry;
+
+    public ushort status;
+    public ushort input;
+    public ushort buttons;
+
+    public short htype;
+
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
+    public short[] hdata;
+}
+
 public class EyelinkCoreInterop : MonoBehaviour
 {
     private const string DLL_NAME = "eyelink_core64.dll";
@@ -37,6 +72,10 @@ public class EyelinkCoreInterop : MonoBehaviour
     [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
 
     public static extern void set_cal_sounds(string ontarget, string ongood, string onbad);
+    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    public static extern short eyelink_newest_float_sample(IntPtr fsamplePtr);
+    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    public static extern short eyelink_eye_available();
 
     // Need to write SDL graphics calibration window in C++
     // [DllImport(GRAPHICS_DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
